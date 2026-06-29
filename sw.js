@@ -1,10 +1,10 @@
 const CACHE_NAME = 'mlp-dashboard-cache-v1';
-const CACHED_URL = './';
+const PRECACHE_URLS = ['./', './style.css', './dashboard.js'];
 
 self.addEventListener('install', function(event) {
     event.waitUntil(
         caches.open(CACHE_NAME).then(function(cache) {
-            return cache.add(CACHED_URL);
+            return cache.addAll(PRECACHE_URLS);
         })
     );
 });
@@ -21,9 +21,11 @@ self.addEventListener('fetch', function(event) {
             });
             return networkResponse;
         }).catch(function() {
-            // Network failed (offline) - serve whatever was last cached, if anything.
+            // Network failed (offline) - serve whatever was last cached, if anything. Falls back to the
+            // page shell itself only as a last resort (e.g. a thumbnail image with no cached entry yet),
+            // not as the default for every miss - that would silently substitute the wrong content type.
             return caches.match(event.request).then(function(cachedResponse) {
-                return cachedResponse || caches.match(CACHED_URL);
+                return cachedResponse || caches.match('./');
             });
         })
     );
