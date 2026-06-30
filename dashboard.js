@@ -2,7 +2,6 @@
         var activeStatusFilter = 'ALL';
         var activeSelectedHasAssets = [];
         var activeSelectedMissingAssets = [];
-        var trackMemoryErrorLedgers = {};
         var shelfModeActive = true;
         var selectionModeActive = false;
         var selectedTrackIds = [];
@@ -274,6 +273,9 @@
                     return '<span class="graphic-dot ' + cls + '" title="' + a + '">' + assetEmoji(a) + '</span>';
                 }).join('');
 
+                var errorFormatIssues = [];
+                try { errorFormatIssues = JSON.parse(card.getAttribute('data-error-format-issues') || '[]'); } catch(e) {}
+
                 var artHtml = artSrc
                     ? '<img class="detail-hero-art" src="' + escHtml(artSrc) + '" alt="art">'
                     : '<div class="detail-hero-art" style="display:flex;align-items:center;justify-content:center;font-size:2rem;">🎵</div>';
@@ -341,6 +343,15 @@
                 // Assets
                 html += '<div class="detail-section"><div class="detail-section-title">Assets</div>' +
                     '<div class="asset-dot-grid">' + assetDots + '</div></div>';
+
+                // errors.txt format violations
+                if (errorFormatIssues.length > 0) {
+                    html += '<div class="detail-section" style="background:#fff5f5;border:1px solid #feb2b2;">' +
+                        '<div class="detail-section-title" style="color:#c53030;">errors.txt format issues (' + errorFormatIssues.length + ')</div>' +
+                        '<div style="font-size:0.8rem;color:#c53030;display:flex;flex-direction:column;gap:4px;">' +
+                        errorFormatIssues.map(function(i) { return '<div>• ' + escHtml(i) + '</div>'; }).join('') +
+                        '</div><div style="font-size:0.72rem;color:#9c4221;margin-top:8px;">Required format per line: MM:SS;error description;fix description, sorted ascending by time.</div></div>';
+                }
 
                 // FeatureFM platforms
                 if (ffmLinks.length > 0) {
@@ -750,28 +761,47 @@
         function triggerAssetUpload(id, name, assetType, acceptAttr, expectedExt) {
             window.open(DRIVE_UPLOAD_FORM_URL + '?song=' + encodeURIComponent(name) + '&type=' + encodeURIComponent(assetType), '_blank');
         }
+        var stagedErrorEntries = {}; // id -> [{time, error, fix}]
+        var TIME_MMSS_PATTERN = /^\d{1,2}:\d{2}$/;
+
         function stageLocalErrorEntry(id, name) {
-            var s = document.getElementById('input-stamp-' + id).value.trim();
+            var t = document.getElementById('input-stamp-' + id).value.trim();
             var issue = document.getElementById('input-issue-' + id).value.trim();
             var f = document.getElementById('input-fix-' + id).value.trim();
+            if (!TIME_MMSS_PATTERN.test(t)) { alert('Enter the time as MM:SS, e.g. 1:24.'); return; }
             if (!issue) { alert('Enter an issue description.'); return; }
-            if (!trackMemoryErrorLedgers[id]) trackMemoryErrorLedgers[id] = [];
-            var entry = '[' + new Date().toLocaleString() + '] ' + (s ? 'Loc: ' + s + ' | ' : '') + 'Issue: ' + issue + (f ? ' -> Fix: ' + f : '');
-            trackMemoryErrorLedgers[id].push(entry);
-            var l = document.getElementById('ledger-' + id); l.style.display = 'flex';
-            var n = document.createElement('div'); n.className = 'staged-error-item'; n.innerText = entry; l.appendChild(n);
+            if (!stagedErrorEntries[id]) stagedErrorEntries[id] = [];
+            stagedErrorEntries[id].push({ time: t, error: issue, fix: f });
+            // Keep staged entries sorted ascending by time as they're added, so the ledger preview
+            // (and the eventual Drive submission) always reads chronologically.
+            stagedErrorEntries[id].sort(function(a, b) {
+                var toSec = function(x) { var p = x.split(':'); return (parseInt(p[0],10)*60) + parseInt(p[1],10); };
+                return toSec(a.time) - toSec(b.time);
+            });
+            var l = document.getElementById('ledger-' + id); l.style.display = 'flex'; l.innerHTML = '';
+            stagedErrorEntries[id].forEach(function(e) {
+                var n = document.createElement('div'); n.className = 'staged-error-item';
+                n.innerText = e.time + ' — ' + e.error + (e.fix ? ' → ' + e.fix : '');
+                l.appendChild(n);
+            });
             document.getElementById(id).setAttribute('data-errors', 'YES');
-            var b = document.getElementById('logbox-' + id);
-            if (b) { if (b.style.display === 'none') { b.style.display = 'block'; b.innerHTML = '<strong>Active Error Log Context:</strong><br>'; } b.innerHTML += '• ' + entry + '<br>'; }
             document.getElementById('input-stamp-' + id).value = '';
             document.getElementById('input-issue-' + id).value = '';
             document.getElementById('input-fix-' + id).value = '';
         }
-        function dispatchStagedErrorsViaEmail(id, name) {
-            var l = trackMemoryErrorLedgers[id] || [];
-            if (l.length === 0) { stageLocalErrorEntry(id, name); l = trackMemoryErrorLedgers[id] || []; if (l.length === 0) return; }
-            window.location.href = 'mailto:phelzier1@gmail.com?subject=' + encodeURIComponent('[MLP] [ERROR REPORT] Quality Control Suffix Notes: ' + name) + '&body=' + encodeURIComponent('Correction entries for "' + name + '":\n\n' + l.join('\n') + '\n\nPlease append to Production\\errors.txt.');
-            trackMemoryErrorLedgers[id] = [];
+
+        function dispatchStagedErrorsViaDrive(id, name) {
+            var entries = stagedErrorEntries[id] || [];
+            if (entries.length === 0) {
+                var t = document.getElementById('input-stamp-' + id).value.trim();
+                var issue = document.getElementById('input-issue-' + id).value.trim();
+                if (t && issue) { stageLocalErrorEntry(id, name); entries = stagedErrorEntries[id] || []; }
+                if (entries.length === 0) { alert('Add at least one timestamped entry first.'); return; }
+            }
+            var json = JSON.stringify(entries);
+            var b64 = btoa(unescape(encodeURIComponent(json)));
+            window.open(DRIVE_UPLOAD_FORM_URL + '?song=' + encodeURIComponent(name) + '&type=ErrorReport&entries=' + encodeURIComponent(b64), '_blank');
+            stagedErrorEntries[id] = [];
             document.getElementById('ledger-' + id).innerHTML = '';
             document.getElementById('ledger-' + id).style.display = 'none';
             toggleErrorSubmissionForm(id);
