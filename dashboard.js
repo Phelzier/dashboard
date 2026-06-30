@@ -288,6 +288,12 @@
                     : '';
                 var spotifyLink = spotUrl ? ' · <a href="' + escHtml(spotUrl) + '" target="_blank">Spotify ↗</a>' : '';
 
+                // Error subform cloned from hidden card DOM (so submission functions still work with the
+                // original card's input IDs) - captured here so it can be inserted right after the hero,
+                // just below the status/duration/ISRC chip row.
+                var subform = document.getElementById('subform-' + cardId);
+                var errorSubformHtml = subform ? subform.outerHTML.replace('id="subform-', 'id="detail-subform-').replace(/style="display:none"/g, '') : '';
+
                 var html = '<div class="detail-hero">' +
                     '<div class="detail-hero-top">' + artHtml +
                     '<div class="detail-hero-info">' +
@@ -297,7 +303,7 @@
                     '<span class="status-pill ' + status.toLowerCase().replace(/ /g,'-') + '">' + escHtml(status) + '</span>' +
                     (dur ? '<span class="album-stat-chip">' + escHtml(dur) + '</span>' : '') +
                     (isrc ? '<span class="album-stat-chip">' + escHtml(isrc) + '</span>' : '') +
-                    '</div></div></div></div>';
+                    '</div></div></div></div>' + errorSubformHtml;
 
                 // Popularity + sparkline
                 if (pop > 0 || popHistory.length > 1) {
@@ -380,10 +386,8 @@
                     '<a href="' + escHtml(nasUrl) + '" class="subform-btn btn-add" target="_blank">📁 NAS</a>' +
                     '</div></div>';
 
-                // Subforms cloned from hidden card DOM (so submission functions still work with original IDs)
-                var subform = document.getElementById('subform-' + cardId);
+                // Publication subform cloned from hidden card DOM (error subform already inserted above)
                 var pubform = document.getElementById('pubform-' + cardId);
-                if (subform) html += subform.outerHTML.replace('id="subform-', 'id="detail-subform-').replace(/style="display:none"/g, '');
                 if (pubform) html += pubform.outerHTML.replace('id="pubform-', 'id="detail-pubform-').replace(/style="display:none"/g, '');
 
                 // Breadcrumb — use data-attribute event delegation to avoid escaping issues
