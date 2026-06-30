@@ -223,3 +223,5 @@
         .staged-errors-ledger{margin-top:8px;padding-top:6px;border-top:1px solid #e2e8f0;font-size:0.78rem;display:none;flex-direction:column;gap:4px;}
         .staged-error-item{background:#fff;padding:4px 8px;border-radius:4px;border-left:3px solid #cbd5e0;}
         #emptyState{display:none;text-align:center;padding:40px 20px;color:var(--text-muted);}
+        .sparkline-wrap{display:flex;flex-direction:column;gap:6px;}
+        .sparkline-meta{display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;}
