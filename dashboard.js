@@ -698,33 +698,11 @@
             document.getElementById('lyricsTextarea').value = '';
             currentLyricsTrackContext = null;
         }
-        var ADMIN_IMPORT_MAX_BYTES = 18 * 1024 * 1024;
         function toggleAdminPanel() { document.getElementById('adminModalBackdrop').classList.add('active'); }
         function closeAdminPanel()  { document.getElementById('adminModalBackdrop').classList.remove('active'); }
         function triggerAdminImport(importType) {
-            var input = document.createElement('input'); input.type = 'file'; input.accept = '.csv,.zip'; input.style.display = 'none';
-            document.body.appendChild(input);
-            input.addEventListener('change', function() {
-                var file = input.files && input.files[0]; document.body.removeChild(input);
-                if (!file) return;
-                var fileExt = (file.name.split('.').pop() || '').toLowerCase();
-                if (fileExt !== 'csv' && fileExt !== 'zip') { alert('Only .csv or .zip accepted.'); return; }
-                if (file.size > ADMIN_IMPORT_MAX_BYTES) { alert('File too large (max 18MB).'); return; }
-                var snapshotDate = null;
-                if (importType === 'artist_songs_1day') {
-                    snapshotDate = prompt('Which date does this snapshot cover? (YYYY-MM-DD)', new Date().toISOString().slice(0,10));
-                    if (!snapshotDate || !/^\d{4}-\d{2}-\d{2}$/.test(snapshotDate.trim())) { if (snapshotDate !== null) alert('Invalid date. Import cancelled.'); return; }
-                    snapshotDate = snapshotDate.trim();
-                }
-                var subject, body;
-                if (importType === 'distrokid')         { subject = '[MLP] [DISTROKID IMPORT] ' + file.name;           body = 'Importing DistroKid export "' + file.name + '".\n\nIMPORTANT: attach the file then send.\n\nFigures will be appended and de-duplicated.'; }
-                else if (importType === 'spotify_audience') { subject = '[MLP] [SPOTIFY AUDIENCE IMPORT] ' + file.name; body = 'Importing Spotify audience export "' + file.name + '".\n\nIMPORTANT: attach the file then send.'; }
-                else if (importType === 'artist_songs_1day') { subject = '[MLP] [ARTIST SONGS 1DAY - ' + snapshotDate + '] ' + file.name; body = 'Importing artist songs 1-day snapshot for ' + snapshotDate + ': "' + file.name + '".\n\nIMPORTANT: attach the file then send.'; }
-                else { subject = '[MLP] [SONG TIMELINE IMPORT] ' + file.name; body = 'Importing song timeline "' + file.name + '".\n\nIMPORTANT: attach the file then send.'; }
-                window.location.href = 'mailto:phelzier1@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-                closeAdminPanel();
-            }, { once: true });
-            input.click();
+            window.open(DRIVE_UPLOAD_FORM_URL + '?type=AdminImport&importType=' + encodeURIComponent(importType), '_blank');
+            closeAdminPanel();
         }
         function openUploadRowAction(id, songName, assetType, acceptAttr, expectedExt) {
             if (assetType === 'Lyrics') {
