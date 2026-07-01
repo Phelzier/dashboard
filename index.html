@@ -33,7 +33,7 @@
     <div class="panel active" id="panel-artist">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
             <h2 style="margin:0;font-size:1.1rem;font-weight:800;color:var(--accent);">Artists</h2>
-            <span onclick="openDiagnosticsPanel()" style="font-size:0.7rem;color:var(--text-muted);font-weight:500;cursor:pointer;user-select:none;" title="Open diagnostics">Updated 2026-07-01T18:57:53 &nbsp;·&nbsp; v0.0.1</span>
+            <span onclick="showPanel('admin')" style="font-size:0.7rem;color:var(--text-muted);font-weight:500;cursor:pointer;user-select:none;" title="Open admin &amp; diagnostics">Updated 2026-07-01T19:09:20 &nbsp;·&nbsp; v0.0.2</span>
         </div>
         <div class='artist-grid'><div class='artist-card' data-artist='2 The MaXXX'><div class='artist-card-hero' style='display:flex;align-items:center;justify-content:center;font-size:4rem;background:#e2e8f0;'>🎤</div><div class='artist-card-body'><div class='artist-card-name'>2 The MaXXX</div><div class='artist-card-meta'>0 track(s) in library</div><div class='section-header'>Albums &amp; Singles</div><div class='artist-album-list'></div></div></div><div class='artist-card' data-artist='4 The MaXXX'><div class='artist-card-hero' style='display:flex;align-items:center;justify-content:center;font-size:4rem;background:#e2e8f0;'>🎤</div><div class='artist-card-body'><div class='artist-card-name'>4 The MaXXX</div><div class='artist-card-meta'>0 track(s) in library</div><div class='section-header'>Albums &amp; Singles</div><div class='artist-album-list'></div></div></div></div>
     </div>
@@ -6556,12 +6556,17 @@ Yeah, we’ve already won!</div>
 
     <div class="panel" id="panel-admin">
         <h2 style="margin:0 0 16px;font-size:1.1rem;font-weight:800;color:var(--accent);">Admin</h2>
-        <div style="display:flex;flex-direction:column;gap:12px;max-width:420px;">
+        <div style="display:flex;flex-direction:column;gap:12px;max-width:480px;">
             <div class="upload-modal-row" style="background:var(--bg-card);border-radius:8px;padding:12px;">
                 <span class="upload-modal-row-label">📂 Upload Data</span>
                 <button class="upload-modal-row-btn" onclick="triggerAdminImport(null)">Upload</button>
             </div>
             <div class="upload-modal-subtitle" style="margin:-4px 0 0 2px;">Select one or more files — type is detected automatically from the filename.</div>
+            <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);">🔬 Diagnostics</div>
+                <button class="upload-modal-row-btn" onclick="refreshDiagnostics()">↻ Refresh</button>
+            </div>
+            <div id="diagnosticsContent" style="font-size:0.8rem;"></div>
         </div>
     </div>
 
@@ -6594,20 +6599,6 @@ Yeah, we’ve already won!</div>
                 </div>
             </div>
             <div class="upload-modal-close-row"><button id="uploadOkBtn" class="upload-modal-close-btn" onclick="submitStagedUploads()">Upload All</button></div>
-        </div>
-    </div>
-    <!-- DIAGNOSTICS MODAL -->
-    <div class="upload-modal-backdrop" id="diagnosticsModalBackdrop" onclick="if(event.target===this) closeDiagnosticsPanel()" style="z-index:1200;">
-        <div class="upload-modal-card" style="max-width:600px;width:100%;max-height:88vh;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                <div class="upload-modal-title" style="margin:0;">🔬 Diagnostics</div>
-                <button onclick="closeDiagnosticsPanel()" style="background:transparent;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-muted);">✕</button>
-            </div>
-            <div id="diagnosticsContent" style="overflow-y:auto;flex:1;font-size:0.8rem;"></div>
-            <div class="upload-modal-close-row" style="margin-top:12px;">
-                <button class="upload-modal-row-btn" onclick="refreshDiagnostics()" style="margin-right:8px;">↻ Refresh</button>
-                <button class="upload-modal-close-btn" onclick="closeDiagnosticsPanel()">Close</button>
-            </div>
         </div>
     </div>
     <!-- SPOTIFY PLAYER DOCK -->
