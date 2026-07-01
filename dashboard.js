@@ -13,7 +13,7 @@
         var KEY_NAMES = ['C','C♯/D♭','D','D♯/E♭','E','F','F♯/G♭','G','G♯/A♭','A','A♯/B♭','B'];
 
         // ── DATA MODEL ──
-        var MLP = { tracks: [], artists: [], profiles: [], companies: [], summary: {}, usdToGbpRate: 1, generated: '' };
+        var MLP = { tracks: [], artists: [], profiles: [], companies: [], summary: {}, usdToGbpRate: 1, generated: '', version: '' };
         var _trackMap = {};
 
         (function loadData() {
@@ -162,6 +162,7 @@
                 else if (name === 'detail' && ctx) renderDetailPanel(ctx);
                 else if (name === 'songs') evaluateControlMatrix();
                 else if (name === 'spotify') loadSpotifyPanel();
+                else if (name === 'admin') { /* static panel, no render needed */ }
             } catch(e) {
                 console.error('Panel render error (' + name + '):', e);
             }
@@ -1116,8 +1117,7 @@
             _stagedUploadFiles = [];
             currentLyricsTrackContext = null;
         }
-        function toggleAdminPanel() { document.getElementById('adminModalBackdrop').classList.add('active'); }
-        function closeAdminPanel()  { document.getElementById('adminModalBackdrop').classList.remove('active'); }
+        function closeAdminPanel() { showPanel('artist'); } // legacy — redirect to artist tab
 
         function closeDiagnosticsPanel() { document.getElementById('diagnosticsModalBackdrop').classList.remove('active'); }
 
@@ -1145,6 +1145,7 @@
 
             // ── DATA ─────────────────────────────────────────────────────────
             section('Dashboard Data');
+            row('Version', MLP.version || '(unknown)', null);
             row('Generated', MLP.generated || '(unknown)', null);
             row('Tracks loaded', MLP.tracks.length, MLP.tracks.length > 0);
             row('Artists', (MLP.artists||[]).length, null);
@@ -2017,8 +2018,6 @@
         function showPlayerDock() {
             document.getElementById('playerDock').classList.add('visible');
             document.body.style.paddingBottom = '70px';
-            var btn = document.getElementById('spotifyConnectBtn');
-            if (btn) btn.style.display = 'none'; // auto-connected; button not needed
             // Show Spotify tab
             var spTab = document.getElementById('tab-spotify');
             if (spTab) spTab.style.display = '';
