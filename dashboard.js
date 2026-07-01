@@ -126,7 +126,7 @@
             var ea = t.earningsByCompany ? Object.keys(t.earningsByCompany).map(function(k){ return ' data-earnings-'+k.replace(/[^a-zA-Z0-9]/g,'').toLowerCase()+'="'+(t.earningsByCompany[k]||0)+'"'; }).join('') : '';
             var h = '<div class="card" id="'+t.id+'" data-title="'+escHtml(t.title)+'" data-status="'+escHtml(t.status)+'" data-errors="'+escHtml(t.errors)+'" data-missing="'+escHtml(t.missing)+'" data-existing="'+escHtml(t.existing)+'" data-profile="'+escHtml(t.profile||'')+'" data-is-album="'+(t.isAlbum?'TRUE':'FALSE')+'" data-album-group="'+escHtml(t.albumGroup||'')+'" data-explicit="'+(t.explicit?'TRUE':'FALSE')+'" data-published="'+(t.published?'TRUE':'FALSE')+'" data-earnings-total="'+(t.earningsTotal||0)+'" data-isrc="'+escHtml(t.isrc||'')+'" data-spotify-artist="'+escHtml(t.spotifyArtist||'')+'" data-spotify-url="'+escHtml(t.spotifyUrl||'')+'" data-spotify-uri="'+escHtml(t.spotifyUri||'')+'" data-artist-filter="'+escHtml(t.spotifyArtist||'')+'"'+ea+'>';
             h += '<div class="card-select-wrapper"><input type="checkbox" class="card-select-checkbox" id="select-'+t.id+'" data-song-name="'+escHtml(t.title)+'" onchange="onCardSelectionChanged(\''+t.id+'\')" /></div>';
-            h += '<div class="card-main-content"><img class="thumb-img" src="'+escHtml(t.thumbUrl||'data:image/png;base64,')+'" alt="Cover" /><div class="card-details"><div class="card-details-top-row"><h3>'+escHtml(t.title)+' <span class="status-pill '+spc+'">'+escHtml(t.status)+'</span></h3><div class="card-actions-wrapper"><button class="detail-btn" onclick="showPanel(\'detail\',{cardId:\''+t.id+'\'})">Detail</button><button class="action-icon-btn" onclick="dispatchVerificationMarkViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')" title="'+escHtml(vtt)+'">&#x1F44D;'+vcb+'</button><button class="action-icon-btn" onclick="toggleUploadPicker(\''+t.id+'\')" title="Upload a missing item">&#x1F4E4;</button><button class="action-icon-btn" onclick="togglePublicationForm(\''+t.id+'\')" title="Update publication">&#x1F310;</button><button class="action-icon-btn" onclick="toggleErrorSubmissionForm(\''+t.id+'\')">&#x26A0;&#xFE0F;</button><a href="'+escHtml(t.nasUrl||'')+'" class="action-icon-btn" target="_blank">&#x1F4C1;</a></div></div><div class="lifecycle-stepper" title="Stem Creation -> DAW Creation -> Asset Gathering -> Ready -> Released">'+stepHtml+'</div><div class="meta-grid"><div class="meta-row"><span class="label">Album:</span>'+alh+'</div><div class="meta-row"><span class="label">Profile:</span><span>'+escHtml(t.profile||'N/A')+'</span></div><div class="meta-row"><span class="label">ISRC:</span>'+ih+'</div>'+mr+elh+'<div class="meta-row"><span class="label">Published:</span>'+pbh+'</div><div class="meta-row"><span class="label">Verified:</span>'+vbh+'</div><div class="meta-row"><span class="label">Spotify:</span>'+sbh+'</div><div class="meta-row"><span class="label">Revenue Stream:</span>'+rvh+'</div><div class="meta-row"><span class="label">Earnings:</span>'+ebh+'</div><div class="meta-row"><span class="label">Platforms:</span>'+ffh+'</div></div>'+gr+'</div></div>';
+            h += '<div class="card-main-content"><img class="thumb-img" src="'+escHtml(t.thumbUrl||'data:image/png;base64,')+'" alt="Cover" /><div class="card-details"><div class="card-details-top-row"><h3>'+escHtml(t.title)+' <span class="status-pill '+spc+'">'+escHtml(t.status)+'</span></h3><div class="card-actions-wrapper"><button class="detail-btn" onclick="showPanel(\'detail\',{cardId:\''+t.id+'\'})">Detail</button>'+(t.spotifyUri&&_spotifyAccessToken?'<button class="action-icon-btn" onclick="playerPlayUri(\''+t.spotifyUri+'\')" title="Play">&#x25B6;</button>':'')+'<button class="action-icon-btn" onclick="dispatchVerificationMarkViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')" title="'+escHtml(vtt)+'">&#x1F44D;'+vcb+'</button><button class="action-icon-btn" onclick="toggleUploadPicker(\''+t.id+'\')" title="Upload a missing item">&#x1F4E4;</button><button class="action-icon-btn" onclick="togglePublicationForm(\''+t.id+'\')" title="Update publication">&#x1F310;</button><button class="action-icon-btn" onclick="toggleErrorSubmissionForm(\''+t.id+'\')">&#x26A0;&#xFE0F;</button><a href="'+escHtml(t.nasUrl||'')+'" class="action-icon-btn" target="_blank">&#x1F4C1;</a></div></div><div class="lifecycle-stepper" title="Stem Creation -> DAW Creation -> Asset Gathering -> Ready -> Released">'+stepHtml+'</div><div class="meta-grid"><div class="meta-row"><span class="label">Album:</span>'+alh+'</div><div class="meta-row"><span class="label">Profile:</span><span>'+escHtml(t.profile||'N/A')+'</span></div><div class="meta-row"><span class="label">ISRC:</span>'+ih+'</div>'+mr+elh+'<div class="meta-row"><span class="label">Published:</span>'+pbh+'</div><div class="meta-row"><span class="label">Verified:</span>'+vbh+'</div><div class="meta-row"><span class="label">Spotify:</span>'+sbh+'</div><div class="meta-row"><span class="label">Revenue Stream:</span>'+rvh+'</div><div class="meta-row"><span class="label">Earnings:</span>'+ebh+'</div><div class="meta-row"><span class="label">Platforms:</span>'+ffh+'</div></div>'+gr+'</div></div>';
             h += '<div class="error-subform-panel" id="subform-'+t.id+'"><div class="subform-grid"><div class="subform-row"><label>Time:</label><input type="text" id="input-stamp-'+t.id+'" class="subform-input" placeholder="1:24 (MM:SS)" /></div><div class="subform-row"><label>Issue:</label><input type="text" id="input-issue-'+t.id+'" class="subform-input" /></div><div class="subform-row"><label>Fix:</label><input type="text" id="input-fix-'+t.id+'" class="subform-input" /></div><div class="subform-actions"><button class="subform-btn btn-add" onclick="stageLocalErrorEntry(\''+t.id+'\','+JSON.stringify(t.title)+')">Stage Note</button><button class="subform-btn btn-email" onclick="dispatchStagedErrorsViaDrive(\''+t.id+'\','+JSON.stringify(t.title)+')">Send via Drive</button></div><div class="staged-errors-ledger" id="ledger-'+t.id+'"></div></div></div>';
             h += '<div class="publication-subform-panel" id="pubform-'+t.id+'"><div class="subform-grid"><div class="subform-row"><label>Platform:</label><input type="text" id="pub-platform-'+t.id+'" class="subform-input" placeholder="Spotify, YouTube, etc." value="'+escHtml(pp)+'" /></div><div class="subform-row"><label>Date:</label><input type="text" id="pub-date-'+t.id+'" class="subform-input" placeholder="YYYY-MM-DD" value="'+escHtml(pd)+'" /></div><div class="subform-row"><label>Link:</label><input type="text" id="pub-link-'+t.id+'" class="subform-input" placeholder="https://..." value="'+escHtml(pl)+'" /></div><div class="subform-actions"><button class="subform-btn btn-email" onclick="dispatchPublicationUpdateViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')">Send Update</button></div></div></div></div>';
             return h;
@@ -159,6 +159,7 @@
                 else if (name === 'album') renderAlbumGrid();
                 else if (name === 'detail' && ctx) renderDetailPanel(ctx);
                 else if (name === 'songs') evaluateControlMatrix();
+                else if (name === 'spotify') loadSpotifyPanel();
             } catch(e) {
                 console.error('Panel render error (' + name + '):', e);
             }
@@ -840,7 +841,9 @@
         function toggleAdminPanel() { document.getElementById('adminModalBackdrop').classList.add('active'); }
         function closeAdminPanel()  { document.getElementById('adminModalBackdrop').classList.remove('active'); }
         function triggerAdminImport(importType) {
-            window.open(DRIVE_UPLOAD_FORM_URL + '?type=AdminImport&importType=' + encodeURIComponent(importType), '_blank');
+            var url = DRIVE_UPLOAD_FORM_URL + '?type=AdminImport';
+            if (importType) url += '&importType=' + encodeURIComponent(importType);
+            window.open(url, '_blank');
             closeAdminPanel();
         }
         function openUploadRowAction(id, songName, assetType, acceptAttr, expectedExt) {
@@ -950,7 +953,7 @@
         var SPOTIFY_CLIENT_ID = '';  // injected at runtime from dashboard data attr
         var SPOTIFY_TOKEN_WORKER = 'https://spotify-token-refresh.cloudfare-fb3.workers.dev/';
         var SPOTIFY_REDIRECT_URI = 'https://phelzier.github.io/dashboard';
-        var SPOTIFY_SCOPES = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state';
+        var SPOTIFY_SCOPES = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state user-library-read playlist-read-private user-top-read user-read-recently-played';
 
         var _spotifyAccessToken = null;
         var _spotifyRefreshToken = null;
@@ -986,6 +989,89 @@
             return (document.documentElement.getAttribute('data-spotify-client-id') || '').trim();
         }
 
+        // ── SPOTIFY PANEL ──
+        var _spView = 'playlists';
+        var _spPlaylists = null;
+        var _spPlaylistTracks = {};
+
+        function buildValidateErrorsSection(cardId) {
+            var track = _trackMap[cardId];
+            if (!track || track.errors !== 'Yes' || !track.errorText) return;
+            var detailContent = document.getElementById('detail-content');
+            if (!detailContent) return;
+            if (document.getElementById('validateErrorsSection-' + cardId)) return;
+            var lines = track.errorText.split('\n').filter(function(l) { return l.trim(); });
+            if (!lines.length) return;
+            var section = document.createElement('div');
+            section.id = 'validateErrorsSection-' + cardId;
+            section.style.cssText = 'background:#fff5f5;border:1px solid #feb2b2;border-radius:10px;padding:14px;margin-top:12px;';
+            section.innerHTML = '<div style="font-weight:800;font-size:0.9rem;color:#c53030;margin-bottom:10px;">&#x26A0; Validate Errors (' + lines.length + ')</div>';
+            lines.forEach(function(line, idx) {
+                var parts = line.split(';');
+                var ts   = (parts[0] || '').trim();
+                var desc = (parts[1] || '').trim();
+                var fix  = (parts[2] || '').trim();
+                var entry = document.createElement('div');
+                entry.style.cssText = 'border:1px solid #fed7d7;border-radius:6px;padding:10px;margin-bottom:8px;background:#fff;';
+                entry.innerHTML =
+                    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+                      '<span style="background:#e53e3e;color:#fff;border-radius:4px;padding:2px 7px;font-size:0.75rem;font-weight:700;">' + escHtml(ts) + '</span>' +
+                      '<span style="font-weight:600;font-size:0.85rem;flex:1;">' + escHtml(desc) + '</span>' +
+                    '</div>' +
+                    (fix ? '<div style="font-size:0.78rem;color:#718096;margin-bottom:8px;"><strong>Fix:</strong> ' + escHtml(fix) + '</div>' : '') +
+                    '<div style="display:flex;gap:8px;">' +
+                      '<button data-ts="' + escHtml(ts) + '" data-uri="' + escHtml(track.spotifyUri||'') + '" style="background:#1DB954;color:#fff;border:none;border-radius:5px;padding:5px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;">&#x25B6; Play from here</button>' +
+                      '<button data-status="pending" style="background:#edf2f7;color:#4a5568;border:none;border-radius:5px;padding:5px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;">Awaiting review</button>' +
+                    '</div>';
+                entry.querySelector('[data-ts]').addEventListener('click', function() {
+                    var tp = this.dataset.ts.split(':');
+                    var ms = (parseInt(tp[0],10)*60 + parseInt(tp[1],10)) * 1000;
+                    if (this.dataset.uri && this.dataset.uri !== _spotifyCurrentUri) {
+                        playerPlayUri(this.dataset.uri).then(function() { setTimeout(function() {
+                            if (_spotifyMode === 'sdk' && _spotifyPlayer) _spotifyPlayer.seek(ms);
+                            else spotifyApiCall('PUT', '/me/player/seek?position_ms=' + ms);
+                        }, 1500); });
+                    } else {
+                        if (_spotifyMode === 'sdk' && _spotifyPlayer) _spotifyPlayer.seek(ms);
+                        else spotifyApiCall('PUT', '/me/player/seek?position_ms=' + ms);
+                    }
+                });
+                var sb = entry.querySelector('[data-status]');
+                sb.addEventListener('click', function() {
+                    var cur = this.dataset.status;
+                    var nxt = cur === 'pending' ? 'confirmed' : (cur === 'confirmed' ? 'dismissed' : 'pending');
+                    this.dataset.status = nxt;
+                    if (nxt === 'confirmed') { this.style.background = '#c6f6d5'; this.style.color = '#276749'; this.textContent = '\u2713 Confirmed'; }
+                    else if (nxt === 'dismissed') { this.style.background = '#e2e8f0'; this.style.color = '#718096'; this.textContent = '\u2715 Dismissed'; }
+                    else { this.style.background = '#edf2f7'; this.style.color = '#4a5568'; this.textContent = 'Awaiting review'; }
+                });
+                section.appendChild(entry);
+            });
+            detailContent.appendChild(section);
+        }
+
+        function switchSpotifyView(view) {
+            _spView = view;
+            document.querySelectorAll('.spotify-tab-btn').forEach(function(b) { b.classList.remove('active'); });
+            var btn = document.getElementById('sp-btn-' + view);
+            if (btn) btn.classList.add('active');
+            loadSpotifyPanel();
+        }
+
+        async function loadSpotifyPanel() {
+            var el = document.getElementById('spotifyPanelContent');
+            if (!el || !_spotifyAccessToken) return;
+            el.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;padding:20px 0;">Loading...</div>';
+            try {
+                if (_spView === 'playlists') await renderSpotifyPlaylists(el);
+                else if (_spView === 'liked')  await renderSpotifyLiked(el);
+                else if (_spView === 'recent') await renderSpotifyRecent(el);
+                else if (_spView === 'top')    await renderSpotifyTop(el);
+            } catch(e) {
+                el.innerHTML = '<div style="color:#e53e3e;padding:12px;">Failed to load: ' + e + '</div>';
+            }
+        }
+
         async function spotifyAuth() {
             var clientId = spotifyGetClientId();
             if (!clientId) { alert('Spotify client ID not configured in dashboard.'); return; }
@@ -1016,11 +1102,13 @@
                 _spotifyTokenExpiry = Date.now() + (data.expires_in * 1000) - 60000;
                 sessionStorage.setItem('sp_refresh', _spotifyRefreshToken);
                 sessionStorage.removeItem('pkce_verifier');
-                // Clean code param from URL
                 var url = new URL(window.location);
                 url.searchParams.delete('code');
                 history.replaceState({}, '', url);
-                spotifyInit();
+                verifySpotifyUser().then(function(allowed) {
+                    if (allowed) { hideAuthScreen(); spotifyInit(); }
+                    else { _spotifyAccessToken = null; sessionStorage.removeItem('sp_refresh'); showAuthScreen('Access denied. Your Spotify account (' + _spotifyUserEmail + ') is not authorised.'); }
+                });
             }
         }
 
@@ -1109,8 +1197,18 @@
 
         function showPlayerDock() {
             document.getElementById('playerDock').classList.add('visible');
-            // Pad body so content isn't hidden under dock
             document.body.style.paddingBottom = '70px';
+            var btn = document.getElementById('spotifyConnectBtn');
+            if (btn) {
+                btn.innerHTML = '&#x25CF; Connected';
+                btn.style.background = '#1DB954';
+                btn.onclick = null;
+                btn.style.cursor = 'default';
+                btn.title = 'Spotify connected';
+            }
+            // Show Spotify tab
+            var spTab = document.getElementById('tab-spotify');
+            if (spTab) spTab.style.display = '';
         }
 
         function updatePlayerUI(name, artist) {
