@@ -1014,8 +1014,13 @@
         // ── UPLOAD / ADMIN / ERROR / PUBLICATION ──
         function toggleErrorSubmissionForm(id) { var p = document.getElementById('subform-' + id); if(p) p.style.display = (p.style.display === 'block') ? 'none' : 'block'; }
         function togglePublicationForm(id) { var p = document.getElementById('pubform-' + id); if(p) p.style.display = (p.style.display === 'block') ? 'none' : 'block'; }
+        // Staged files for current upload session: [{file, assetType, songName, acceptAttr, expectedExt}]
+        var _stagedUploadFiles = [];
+        var _uploadAssetCtx = null; // {id, songName, assetType, acceptAttr, expectedExt}
+
         function toggleUploadPicker(id) {
             currentUploadModalTrackId = id;
+            _stagedUploadFiles = [];
             var card = document.getElementById(id);
             var title = card ? (card.getAttribute('data-title') || 'this track') : 'this track';
             document.getElementById('uploadModalTitle').innerText = 'Missing items: ' + title;
@@ -1028,16 +1033,84 @@
                 if (seenTypes[assetType]) return; seenTypes[assetType] = true;
                 var songName = JSON.parse(m[2].replace(/\\'/g,"'"));
                 var iconMap = {Cover:'🖼️',Lyrics:'📄',Canvas:'🎥',Clip:'✂️',Reel:'🎬',AlbumReel:'🎞️'};
-                rowsHtml += '<div class="upload-modal-row"><span class="upload-modal-row-label">' + (iconMap[assetType]||'📤') + ' ' + assetType + '</span><button class="upload-modal-row-btn" onclick=\'openUploadRowAction("' + id + '","' + songName.replace(/"/g,'\\"').replace(/'/g,"\\'") + '","' + assetType + '","' + acceptAttr + '","' + expectedExt + '")\'>Upload</button></div>';
+                rowsHtml += '<div class="upload-modal-row"><span class="upload-modal-row-label">' + (iconMap[assetType]||'📤') + ' ' + assetType + '</span>'
+                    + '<button class="upload-modal-row-btn" onclick=\'openUploadRowAction("' + id + '","' + songName.replace(/"/g,'\\"').replace(/'/g,"\\'") + '","' + assetType + '","' + acceptAttr + '","' + expectedExt + '")\'>Choose File</button></div>';
             });
             document.getElementById('uploadModalRows').innerHTML = rowsHtml || '<div class="upload-modal-empty">Nothing missing on this track. 🎉</div>';
+            document.getElementById('uploadStagedList').innerHTML = '';
+            document.getElementById('uploadProgressMsg').style.display = 'none';
+            document.getElementById('uploadProgressMsg').textContent = '';
+            document.getElementById('uploadOkBtn').style.display = '';
             document.getElementById('lyricsEntryPanel').classList.remove('active');
             document.getElementById('uploadModalBackdrop').classList.add('active');
         }
+
+        function _renderStagedList() {
+            var el = document.getElementById('uploadStagedList');
+            if (!_stagedUploadFiles.length) { el.innerHTML = ''; return; }
+            var html = '<div style="font-size:0.78rem;font-weight:700;margin:10px 0 4px;color:var(--text-muted);">Staged for upload (' + _stagedUploadFiles.length + '):</div>';
+            _stagedUploadFiles.forEach(function(item, idx) {
+                html += '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.8rem;">'
+                    + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
+                    + escHtml(item.assetType) + ' — ' + escHtml(item.file.name) + '</span>'
+                    + '<button onclick="_removeStagedFile(' + idx + ')" style="background:transparent;border:none;color:var(--danger,#e53e3e);font-size:1rem;cursor:pointer;flex-shrink:0;">✕</button></div>';
+            });
+            el.innerHTML = html;
+        }
+
+        function _removeStagedFile(idx) {
+            _stagedUploadFiles.splice(idx, 1);
+            _renderStagedList();
+        }
+
+        async function submitStagedUploads() {
+            if (!_stagedUploadFiles.length) { closeUploadModal(); return; }
+            var btn = document.getElementById('uploadOkBtn');
+            var msg = document.getElementById('uploadProgressMsg');
+            btn.style.display = 'none';
+            msg.style.display = 'block';
+            var total = _stagedUploadFiles.length;
+            var failed = [];
+            for (var i = 0; i < total; i++) {
+                var item = _stagedUploadFiles[i];
+                msg.textContent = 'Uploading ' + (i+1) + '/' + total + ': ' + item.file.name;
+                var ok = await _doUploadFile(item);
+                if (!ok) failed.push(item.file.name);
+            }
+            if (failed.length) {
+                msg.style.color = 'var(--danger,#e53e3e)';
+                msg.textContent = 'Failed: ' + failed.join(', ');
+                btn.textContent = 'Close'; btn.style.display = '';
+            } else {
+                msg.style.color = '#1DB954';
+                msg.textContent = 'All ' + total + ' file' + (total > 1 ? 's' : '') + ' uploaded successfully!';
+                setTimeout(function() { closeUploadModal(); }, 1500);
+            }
+        }
+
+        async function _doUploadFile(item) {
+            return new Promise(function(resolve) {
+                var reader = new FileReader();
+                reader.onload = async function() {
+                    try {
+                        var ghName = item.songName.replace(/ /g,'_') + '__' + item.assetType + '__' + item.file.name;
+                        var resp = await fetch(WORKER_URL + '/github/push', { method:'POST', headers:{'Content-Type':'application/json'},
+                            body: JSON.stringify({path: 'uploads/'+ghName, content: reader.result.split(',')[1], message: 'Upload: '+ghName}) });
+                        var res = await resp.json();
+                        resolve(res && res.success !== false);
+                    } catch(e) { resolve(false); }
+                };
+                reader.onerror = function() { resolve(false); };
+                reader.readAsDataURL(item.file);
+            });
+        }
+
         function closeUploadModal() {
             document.getElementById('uploadModalBackdrop').classList.remove('active');
             document.getElementById('lyricsEntryPanel').classList.remove('active');
             document.getElementById('lyricsTextarea').value = '';
+            document.getElementById('uploadOkBtn').textContent = 'Upload All';
+            _stagedUploadFiles = [];
             currentLyricsTrackContext = null;
         }
         function toggleAdminPanel() { document.getElementById('adminModalBackdrop').classList.add('active'); }
@@ -1114,7 +1187,21 @@
                 document.getElementById('lyricsEntryPanel').classList.add('active');
                 document.getElementById('lyricsTextarea').focus(); return;
             }
-            triggerAssetUpload(id, songName, assetType, acceptAttr, expectedExt);
+            // Open file picker; add chosen file(s) to staged list
+            _uploadAssetCtx = { id: id, songName: songName, assetType: assetType, acceptAttr: acceptAttr, expectedExt: expectedExt };
+            var input = document.createElement('input');
+            input.type = 'file'; input.accept = acceptAttr || '*'; input.multiple = true;
+            input.onchange = function() {
+                if (!input.files || !input.files.length) return;
+                for (var i = 0; i < input.files.length; i++) {
+                    var file = input.files[i];
+                    var ext = (file.name.split('.').pop()||'').toLowerCase();
+                    if (expectedExt && ext !== expectedExt) { alert('Expected a .' + expectedExt + ' file. Skipping: ' + file.name); continue; }
+                    _stagedUploadFiles.push({ file: file, assetType: assetType, songName: songName, acceptAttr: acceptAttr, expectedExt: expectedExt });
+                }
+                _renderStagedList();
+            };
+            input.click();
         }
         function switchLyricsToFileUpload() { if (!currentLyricsTrackContext) return; var c = currentLyricsTrackContext; triggerAssetUpload(c.id, c.songName, 'Lyrics', c.acceptAttr, c.expectedExt); }
         function dispatchLyricsTextViaEmail() {
@@ -1136,28 +1223,6 @@
         function dispatchVerificationMarkViaEmail(id, name) {
             var ts = new Date().toISOString();
             window.location.href = 'mailto:phelzier1@gmail.com?subject=' + encodeURIComponent('[MLP] [VERIFY] ' + name) + '&body=' + encodeURIComponent('Verification mark for "' + name + '":\n\nTimestamp: ' + ts + '\n\nPlease record this as a verification for this track.');
-        }
-        function triggerAssetUpload(id, name, assetType, acceptAttr, expectedExt) {
-            var input = document.createElement('input');
-            input.type = 'file'; input.accept = acceptAttr || '*';
-            input.onchange = async function() {
-                if (!input.files || !input.files.length) return;
-                var file = input.files[0];
-                var ext = (file.name.split('.').pop()||'').toLowerCase();
-                if (expectedExt && ext !== expectedExt) { alert('Expected a .' + expectedExt + ' file.'); return; }
-                var ghName = name.replace(/ /g,'_') + '__' + assetType + '__' + file.name;
-                var reader = new FileReader();
-                reader.onload = async function() {
-                    try {
-                        var resp = await fetch(WORKER_URL + '/github/push', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({path: 'uploads/'+ghName, content: reader.result.split(',')[1], message: 'Upload: '+ghName}) });
-                        var res = await resp.json();
-                        if (res && res.success !== false) { alert('Uploaded!'); closeUploadModal(); }
-                        else { alert('Upload failed. Please try again.'); }
-                    } catch(e) { alert('Error: ' + e); }
-                };
-                reader.readAsDataURL(file);
-            };
-            input.click();
         }
         var stagedErrorEntries = {}; // id -> [{time, error, fix}]
         var TIME_MMSS_PATTERN = /^\d{1,2}:\d{2}$/;
