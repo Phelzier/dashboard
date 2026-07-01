@@ -10,10 +10,11 @@
         var BATCH_EMAIL_BODY_CHAR_LIMIT = 1800;
         var currentUploadModalTrackId = null;
         var currentLyricsTrackContext = null;
+        var DRIVE_UPLOAD_FORM_URL = "https://script.google.com/macros/s/AKfycbyDUHTdym61L6ztjTgdO2E4ImWFDcKh6vFspTUIPe2Fz7qTLPcWt79rTPPHZNF17_c/exec";
         var KEY_NAMES = ['C','C♯/D♭','D','D♯/E♭','E','F','F♯/G♭','G','G♯/A♭','A','A♯/B♭','B'];
 
         // ── DATA MODEL ──
-        var MLP = { tracks: [], artists: [], profiles: [], companies: [], summary: {}, usdToGbpRate: 1, generated: '', version: '' };
+        var MLP = { tracks: [], artists: [], profiles: [], companies: [], summary: {}, usdToGbpRate: 1, appsScriptUrl: '', generated: '' };
         var _trackMap = {};
 
         (function loadData() {
@@ -23,6 +24,7 @@
                     MLP = data;
                     MLP.tracks.forEach(function(t) { _trackMap[t.id] = t; });
                     if (data.usdToGbpRate) window.USD_TO_GBP = data.usdToGbpRate;
+                    if (data.appsScriptUrl) DRIVE_UPLOAD_FORM_URL = data.appsScriptUrl;
                     populateFilterDropdowns();
                     renderArtistPanel();
                     renderSummaryCards();
@@ -124,12 +126,13 @@
             var vbh = t.verificationCount > 0 ? '<span class="badge yes" title="Last: '+escHtml(t.lastVerified||'')+'">Verified x'+t.verificationCount+'</span>' : '<span class="badge neutral">Not verified</span>';
             var elh = (t.errors === 'Yes' || t.errorText) ? '<div class="error-log-box" id="logbox-'+t.id+'"><strong>Active Error Log Context:</strong><br>'+escHtml(t.errorText||'')+'</div>' : '<div class="error-log-box" id="logbox-'+t.id+'" style="display:none;"></div>';
             var alh = (t.isAlbum && t.albumGroup && t.albumGroup !== 'N/A') ? '<a href="#" class="album-link" data-album="'+escHtml(t.albumGroup)+'">'+escHtml(t.albumGroup)+'</a>' : '<span>'+escHtml(t.albumGroup||'N/A')+'</span>';
+            var slh = (t.isSingle && t.singles && t.singles.length) ? t.singles.map(function(s){ var conf = s.spotifyAlbumId ? ' <span class="badge yes" style="font-size:0.62rem;padding:1px 4px;">&#x2713;</span>' : ''; return '<span class="badge neutral">'+escHtml(s.singleName||s.spotifyAlbumName||'—')+conf+'</span>'; }).join(' ') : '';
             var ih = (t.isrc && t.isrc !== 'N/A') ? '<span class="badge yes">'+escHtml(t.isrc)+'</span>' : '<span class="badge neutral">N/A</span>';
             var ea = t.earningsByCompany ? Object.keys(t.earningsByCompany).map(function(k){ return ' data-earnings-'+k.replace(/[^a-zA-Z0-9]/g,'').toLowerCase()+'="'+(t.earningsByCompany[k]||0)+'"'; }).join('') : '';
-            var h = '<div class="card" id="'+t.id+'" data-title="'+escHtml(t.title)+'" data-status="'+escHtml(t.status)+'" data-errors="'+escHtml(t.errors)+'" data-missing="'+escHtml(t.missing)+'" data-existing="'+escHtml(t.existing)+'" data-profile="'+escHtml(t.profile||'')+'" data-is-album="'+(t.isAlbum?'TRUE':'FALSE')+'" data-album-group="'+escHtml(t.albumGroup||'')+'" data-explicit="'+(t.explicit?'TRUE':'FALSE')+'" data-published="'+(t.published?'TRUE':'FALSE')+'" data-earnings-total="'+(t.earningsTotal||0)+'" data-isrc="'+escHtml(t.isrc||'')+'" data-spotify-artist="'+escHtml(t.spotifyArtist||'')+'" data-spotify-url="'+escHtml(t.spotifyUrl||'')+'" data-spotify-uri="'+escHtml(t.spotifyUri||'')+'" data-artist-filter="'+escHtml(t.spotifyArtist||'')+'" data-release-date="'+escHtml(t.spotifyReleaseDate||'')+'"'+ea+'>';
+            var h = '<div class="card" id="'+t.id+'" data-title="'+escHtml(t.title)+'" data-status="'+escHtml(t.status)+'" data-errors="'+escHtml(t.errors)+'" data-missing="'+escHtml(t.missing)+'" data-existing="'+escHtml(t.existing)+'" data-profile="'+escHtml(t.profile||'')+'" data-is-album="'+(t.isAlbum?'TRUE':'FALSE')+'" data-is-single="'+(t.isSingle?'TRUE':'FALSE')+'" data-album-group="'+escHtml(t.albumGroup||'')+'" data-explicit="'+(t.explicit?'TRUE':'FALSE')+'" data-published="'+(t.published?'TRUE':'FALSE')+'" data-earnings-total="'+(t.earningsTotal||0)+'" data-isrc="'+escHtml(t.isrc||'')+'" data-spotify-artist="'+escHtml(t.spotifyArtist||'')+'" data-spotify-url="'+escHtml(t.spotifyUrl||'')+'" data-spotify-uri="'+escHtml(t.spotifyUri||'')+'" data-artist-filter="'+escHtml(t.spotifyArtist||'')+'" data-release-date="'+escHtml(t.spotifyReleaseDate||'')+'"'+ea+'>';
             h += '<div class="card-select-wrapper"><input type="checkbox" class="card-select-checkbox" id="select-'+t.id+'" data-song-name="'+escHtml(t.title)+'" onchange="onCardSelectionChanged(\''+t.id+'\')" /></div>';
-            h += '<div class="card-main-content"><img class="thumb-img" src="'+escHtml(t.thumbUrl||'data:image/png;base64,')+'" alt="Cover" /><div class="card-details"><div class="card-details-top-row"><h3>'+escHtml(t.title)+' <span class="status-pill '+spc+'">'+escHtml(t.status)+'</span></h3><div class="card-actions-wrapper"><button class="detail-btn" onclick="showPanel(\'detail\',{cardId:\''+t.id+'\'})">Detail</button><span id=\"conf-badge-'+t.id+'\" style=\"display:none;font-size:0.7rem;color:#1DB954;font-weight:700;margin-left:4px;\"></span>'+(t.spotifyUri&&_spotifyAccessToken?'<button class="action-icon-btn" onclick="playerPlayUriInContext(\''+t.spotifyUri+'\')" title="Play in order">&#x25B6;</button>':'')+'<button class="action-icon-btn" onclick="dispatchVerificationMarkViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')" title="'+escHtml(vtt)+'">&#x1F44D;'+vcb+'</button><button class="action-icon-btn" onclick="toggleUploadPicker(\''+t.id+'\')" title="Upload a missing item">&#x1F4E4;</button><button class="action-icon-btn" onclick="togglePublicationForm(\''+t.id+'\')" title="Update publication">&#x1F310;</button><button class="action-icon-btn" onclick="toggleErrorSubmissionForm(\''+t.id+'\')">&#x26A0;&#xFE0F;</button><button class="action-icon-btn" onclick="openTrackDetailPopup(\\\''+t.id+'\\\')" title="More detail">&#x1F50D;</button><a href="'+escHtml(t.nasUrl||'')+'" class="action-icon-btn" target="_blank">&#x1F4C1;</a></div></div><div class="lifecycle-stepper" title="Stem Creation -> DAW Creation -> Asset Gathering -> Ready -> Released">'+stepHtml+'</div><div class="meta-grid"><div class="meta-row"><span class="label">Album:</span>'+alh+'</div><div class="meta-row"><span class="label">Profile:</span><span>'+escHtml(t.profile||'N/A')+'</span></div><div class="meta-row"><span class="label">ISRC:</span>'+ih+'</div>'+mr+elh+'<div class="meta-row"><span class="label">Published:</span>'+pbh+'</div><div class="meta-row"><span class="label">Verified:</span>'+vbh+'</div><div class="meta-row"><span class="label">Spotify:</span>'+sbh+'</div><div class="meta-row"><span class="label">Revenue Stream:</span>'+rvh+'</div><div class="meta-row"><span class="label">Earnings:</span>'+ebh+'</div><div class="meta-row"><span class="label">Platforms:</span>'+ffh+'<div class="meta-row"><span class="label">Confidence:</span><span style="font-size:0.85rem;color:#1DB954;font-weight:600;">'+(_confidenceScores[t.id]?'\uD83D\uDC4D '+_confidenceScores[t.id]+' thumbs up':'Not yet rated')+'</span></div></div>'+gr+'</div></div>';
-            h += '<div class="error-subform-panel" id="subform-'+t.id+'"><div class="subform-grid"><div class="subform-row"><label>Time:</label><input type="text" id="input-stamp-'+t.id+'" class="subform-input" placeholder="1:24 (MM:SS)" /></div><div class="subform-row"><label>Issue:</label><input type="text" id="input-issue-'+t.id+'" class="subform-input" /></div><div class="subform-row"><label>Fix:</label><input type="text" id="input-fix-'+t.id+'" class="subform-input" /></div><div class="subform-actions"><button class="subform-btn btn-add" onclick="stageLocalErrorEntry(\''+t.id+'\','+JSON.stringify(t.title)+')">Stage Note</button><button class="subform-btn btn-email" onclick="dispatchStagedErrorsViaGitHub(\''+t.id+'\','+JSON.stringify(t.title)+')">Send Report</button></div><div class="staged-errors-ledger" id="ledger-'+t.id+'"></div></div></div>';
+            h += '<div class="card-main-content"><img class="thumb-img" src="'+escHtml(t.thumbUrl||'data:image/png;base64,')+'" alt="Cover" /><div class="card-details"><div class="card-details-top-row"><h3>'+escHtml(t.title)+' <span class="status-pill '+spc+'">'+escHtml(t.status)+'</span></h3><div class="card-actions-wrapper"><button class="detail-btn" onclick="showPanel(\'detail\',{cardId:\''+t.id+'\'})">Detail</button><span id=\"conf-badge-'+t.id+'\" style=\"display:none;font-size:0.7rem;color:#1DB954;font-weight:700;margin-left:4px;\"></span>'+(t.spotifyUri&&_spotifyAccessToken?'<button class="action-icon-btn" onclick="playerPlayUriInContext(\''+t.spotifyUri+'\')" title="Play in order">&#x25B6;</button>':'')+'<button class="action-icon-btn" onclick="dispatchVerificationMarkViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')" title="'+escHtml(vtt)+'">&#x1F44D;'+vcb+'</button><button class="action-icon-btn" onclick="toggleUploadPicker(\''+t.id+'\')" title="Upload a missing item">&#x1F4E4;</button><button class="action-icon-btn" onclick="togglePublicationForm(\''+t.id+'\')" title="Update publication">&#x1F310;</button><button class="action-icon-btn" onclick="toggleErrorSubmissionForm(\''+t.id+'\')">&#x26A0;&#xFE0F;</button><button class="action-icon-btn" onclick="openTrackDetailPopup(\\\''+t.id+'\\\')" title="More detail">&#x1F50D;</button><a href="'+escHtml(t.nasUrl||'')+'" class="action-icon-btn" target="_blank">&#x1F4C1;</a></div></div><div class="lifecycle-stepper" title="Stem Creation -> DAW Creation -> Asset Gathering -> Ready -> Released">'+stepHtml+'</div><div class="meta-grid"><div class="meta-row"><span class="label">Album:</span>'+alh+'</div>'+(slh?'<div class="meta-row"><span class="label">Single:</span>'+slh+'</div>':'')+'<div class="meta-row"><span class="label">Profile:</span><span>'+escHtml(t.profile||'N/A')+'</span></div><div class="meta-row"><span class="label">ISRC:</span>'+ih+'</div>'+mr+elh+'<div class="meta-row"><span class="label">Published:</span>'+pbh+'</div><div class="meta-row"><span class="label">Verified:</span>'+vbh+'</div><div class="meta-row"><span class="label">Spotify:</span>'+sbh+'</div><div class="meta-row"><span class="label">Revenue Stream:</span>'+rvh+'</div><div class="meta-row"><span class="label">Earnings:</span>'+ebh+'</div><div class="meta-row"><span class="label">Platforms:</span>'+ffh+'<div class="meta-row"><span class="label">Confidence:</span><span style="font-size:0.85rem;color:#1DB954;font-weight:600;">'+(_confidenceScores[t.id]?'\uD83D\uDC4D '+_confidenceScores[t.id]+' thumbs up':'Not yet rated')+'</span></div></div>'+gr+'</div></div>';
+            h += '<div class="error-subform-panel" id="subform-'+t.id+'"><div class="subform-grid"><div class="subform-row"><label>Time:</label><input type="text" id="input-stamp-'+t.id+'" class="subform-input" placeholder="1:24 (MM:SS)" /></div><div class="subform-row"><label>Issue:</label><input type="text" id="input-issue-'+t.id+'" class="subform-input" /></div><div class="subform-row"><label>Fix:</label><input type="text" id="input-fix-'+t.id+'" class="subform-input" /></div><div class="subform-actions"><button class="subform-btn btn-add" onclick="stageLocalErrorEntry(\''+t.id+'\','+JSON.stringify(t.title)+')">Stage Note</button><button class="subform-btn btn-email" onclick="dispatchStagedErrorsViaDrive(\''+t.id+'\','+JSON.stringify(t.title)+')">Send via Drive</button></div><div class="staged-errors-ledger" id="ledger-'+t.id+'"></div></div></div>';
             h += '<div class="publication-subform-panel" id="pubform-'+t.id+'"><div class="subform-grid"><div class="subform-row"><label>Platform:</label><input type="text" id="pub-platform-'+t.id+'" class="subform-input" placeholder="Spotify, YouTube, etc." value="'+escHtml(pp)+'" /></div><div class="subform-row"><label>Date:</label><input type="text" id="pub-date-'+t.id+'" class="subform-input" placeholder="YYYY-MM-DD" value="'+escHtml(pd)+'" /></div><div class="subform-row"><label>Link:</label><input type="text" id="pub-link-'+t.id+'" class="subform-input" placeholder="https://..." value="'+escHtml(pl)+'" /></div><div class="subform-actions"><button class="subform-btn btn-email" onclick="dispatchPublicationUpdateViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')">Send Update</button></div></div></div></div>';
             return h;
         }
@@ -162,7 +165,6 @@
                 else if (name === 'detail' && ctx) renderDetailPanel(ctx);
                 else if (name === 'songs') evaluateControlMatrix();
                 else if (name === 'spotify') loadSpotifyPanel();
-                else if (name === 'admin') { refreshDiagnostics(); }
             } catch(e) {
                 console.error('Panel render error (' + name + '):', e);
             }
@@ -688,34 +690,29 @@
             document.getElementById('batchFeedbackPanel').style.display = 'block';
         }
         function closeBatchFeedbackForm() { document.getElementById('batchFeedbackPanel').style.display = 'none'; }
-        async function dispatchBatchFeedbackViaEmail() {
-            var cards = document.querySelectorAll('.card');
+        function dispatchBatchFeedbackViaEmail() {
+            var inputs = document.querySelectorAll('.batch-issue-input');
             var sections = [];
-            cards.forEach(function(c) {
-                var ledger = c.querySelector('.staged-errors-ledger');
-                if (!ledger || !ledger.children.length) return;
-                var title = c.getAttribute('data-title') || c.id;
-                var entries = [];
-                ledger.querySelectorAll('.ledger-entry').forEach(function(e) {
-                    var t = e.getAttribute('data-time') || '';
-                    var issue = e.getAttribute('data-issue') || '';
-                    var fix = e.getAttribute('data-fix') || '';
-                    if (t && issue) entries.push({ time: t, error: issue, fix: fix });
-                });
-                if (entries.length) sections.push({ songName: title, entries: entries });
-            });
-            if (!sections.length) { alert('No staged error notes to send.'); return; }
-            var ts = new Date().toISOString();
-            var reportId = Date.now() + '-' + Math.random().toString(36).slice(2,7);
-            var payload = { songName: 'BATCH', sections: sections, submittedBy: _spotifyUserEmail || 'unknown', submittedAt: ts };
-            try {
-                var resp = await fetch(WORKER_URL + '/github/push', { method:'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ path: 'error-reports/batch-' + reportId + '.json', content: toBase64(JSON.stringify(payload, null, 2)), message: 'Batch error report' }) });
-                var res = await resp.json();
-                if (res && res.success !== false) { alert('Sent! Will be processed on next run.'); closeBatchFeedbackForm(); }
-                else { alert('Failed to send. Please try again.'); }
-            } catch(e) { alert('Error: ' + e); }
+            for (var i = 0; i < inputs.length; i++) {
+                var issue = inputs[i].value.trim();
+                if (issue) sections.push('== ' + inputs[i].getAttribute('data-track-name') + ' ==\nIssue: ' + issue);
+            }
+            if (sections.length === 0) { alert('Enter at least one issue before sending.'); return; }
+            var body = '[ERROR REPORT BATCH]\n\n' + sections.join('\n\n') + '\n\nPlease append these to each track\'s Production\\errors.txt.';
+            if (body.length > BATCH_EMAIL_BODY_CHAR_LIMIT) {
+                var blob = new Blob([body], { type: 'text/plain' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a'); a.href = url; a.download = 'batch_error_report.txt';
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                alert('Batch report saved as a text file. Please email it to phelzier1@gmail.com with subject "[ERROR REPORT BATCH]".');
+            } else {
+                window.location.href = 'mailto:phelzier1@gmail.com?subject=' + encodeURIComponent('[MLP] [ERROR REPORT BATCH] ' + sections.length + ' tracks') + '&body=' + encodeURIComponent(body);
+            }
+            closeBatchFeedbackForm(); clearAllSelections();
         }
+
+        // ── STATUS / FILTER ──
         function applyStatusFilter(s) {
             var cards = document.getElementsByClassName('summary-card');
             for (var i = 0; i < cards.length; i++) cards[i].classList.remove('active-filter');
@@ -771,9 +768,11 @@
             var matchProfile = targetProfile === 'ALL' ||
                 (targetProfile === 'UNASSIGNED' && (profileAttr === 'N/A' || profileAttr === '')) ||
                 profileAttr === targetProfile;
+            var isSingleCard = card.getAttribute('data-is-single') === 'TRUE';
             var matchAlbumCtx = albumContextMode === 'ALL' ||
-                (albumContextMode === 'ALBUM'  && isAlbumDir) ||
-                (albumContextMode === 'LOOSE'  && !isAlbumDir);
+                (albumContextMode === 'ALBUM'   && isAlbumDir) ||
+                (albumContextMode === 'SINGLE'  && isSingleCard) ||
+                (albumContextMode === 'NEITHER' && !isAlbumDir && !isSingleCard);
             var matchHas     = activeSelectedHasAssets.every(function(a)  { return existingArr.indexOf(a) > -1; });
             var matchMissing = activeSelectedMissingAssets.every(function(a) { return missingArr.indexOf(a) > -1; });
             var matchSearch  = query ? cardText.indexOf(query) > -1 : true;
@@ -1018,13 +1017,8 @@
         // ── UPLOAD / ADMIN / ERROR / PUBLICATION ──
         function toggleErrorSubmissionForm(id) { var p = document.getElementById('subform-' + id); if(p) p.style.display = (p.style.display === 'block') ? 'none' : 'block'; }
         function togglePublicationForm(id) { var p = document.getElementById('pubform-' + id); if(p) p.style.display = (p.style.display === 'block') ? 'none' : 'block'; }
-        // Staged files for current upload session: [{file, assetType, songName, acceptAttr, expectedExt}]
-        var _stagedUploadFiles = [];
-        var _uploadAssetCtx = null; // {id, songName, assetType, acceptAttr, expectedExt}
-
         function toggleUploadPicker(id) {
             currentUploadModalTrackId = id;
-            _stagedUploadFiles = [];
             var card = document.getElementById(id);
             var title = card ? (card.getAttribute('data-title') || 'this track') : 'this track';
             document.getElementById('uploadModalTitle').innerText = 'Missing items: ' + title;
@@ -1037,207 +1031,26 @@
                 if (seenTypes[assetType]) return; seenTypes[assetType] = true;
                 var songName = JSON.parse(m[2].replace(/\\'/g,"'"));
                 var iconMap = {Cover:'🖼️',Lyrics:'📄',Canvas:'🎥',Clip:'✂️',Reel:'🎬',AlbumReel:'🎞️'};
-                rowsHtml += '<div class="upload-modal-row"><span class="upload-modal-row-label">' + (iconMap[assetType]||'📤') + ' ' + assetType + '</span>'
-                    + '<button class="upload-modal-row-btn" onclick=\'openUploadRowAction("' + id + '","' + songName.replace(/"/g,'\\"').replace(/'/g,"\\'") + '","' + assetType + '","' + acceptAttr + '","' + expectedExt + '")\'>Choose File</button></div>';
+                rowsHtml += '<div class="upload-modal-row"><span class="upload-modal-row-label">' + (iconMap[assetType]||'📤') + ' ' + assetType + '</span><button class="upload-modal-row-btn" onclick=\'openUploadRowAction("' + id + '","' + songName.replace(/"/g,'\\"').replace(/'/g,"\\'") + '","' + assetType + '","' + acceptAttr + '","' + expectedExt + '")\'>Upload</button></div>';
             });
             document.getElementById('uploadModalRows').innerHTML = rowsHtml || '<div class="upload-modal-empty">Nothing missing on this track. 🎉</div>';
-            document.getElementById('uploadStagedList').innerHTML = '';
-            document.getElementById('uploadProgressMsg').style.display = 'none';
-            document.getElementById('uploadProgressMsg').textContent = '';
-            document.getElementById('uploadOkBtn').style.display = '';
             document.getElementById('lyricsEntryPanel').classList.remove('active');
             document.getElementById('uploadModalBackdrop').classList.add('active');
         }
-
-        function _renderStagedList() {
-            var el = document.getElementById('uploadStagedList');
-            if (!_stagedUploadFiles.length) { el.innerHTML = ''; return; }
-            var html = '<div style="font-size:0.78rem;font-weight:700;margin:10px 0 4px;color:var(--text-muted);">Staged for upload (' + _stagedUploadFiles.length + '):</div>';
-            _stagedUploadFiles.forEach(function(item, idx) {
-                html += '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.8rem;">'
-                    + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'
-                    + escHtml(item.assetType) + ' — ' + escHtml(item.file.name) + '</span>'
-                    + '<button onclick="_removeStagedFile(' + idx + ')" style="background:transparent;border:none;color:var(--danger,#e53e3e);font-size:1rem;cursor:pointer;flex-shrink:0;">✕</button></div>';
-            });
-            el.innerHTML = html;
-        }
-
-        function _removeStagedFile(idx) {
-            _stagedUploadFiles.splice(idx, 1);
-            _renderStagedList();
-        }
-
-        async function submitStagedUploads() {
-            if (!_stagedUploadFiles.length) { closeUploadModal(); return; }
-            var btn = document.getElementById('uploadOkBtn');
-            var msg = document.getElementById('uploadProgressMsg');
-            btn.style.display = 'none';
-            msg.style.display = 'block';
-            var total = _stagedUploadFiles.length;
-            var failed = [];
-            for (var i = 0; i < total; i++) {
-                var item = _stagedUploadFiles[i];
-                msg.textContent = 'Uploading ' + (i+1) + '/' + total + ': ' + item.file.name;
-                var ok = await _doUploadFile(item);
-                if (!ok) failed.push(item.file.name);
-            }
-            if (failed.length) {
-                msg.style.color = 'var(--danger,#e53e3e)';
-                msg.textContent = 'Failed: ' + failed.join(', ');
-                btn.textContent = 'Close'; btn.style.display = '';
-            } else {
-                msg.style.color = '#1DB954';
-                msg.textContent = 'All ' + total + ' file' + (total > 1 ? 's' : '') + ' uploaded successfully!';
-                setTimeout(function() { closeUploadModal(); }, 1500);
-            }
-        }
-
-        async function _doUploadFile(item) {
-            return new Promise(function(resolve) {
-                var reader = new FileReader();
-                reader.onload = async function() {
-                    try {
-                        var ghName = item.songName.replace(/ /g,'_') + '__' + item.assetType + '__' + item.file.name;
-                        var resp = await fetch(WORKER_URL + '/github/push', { method:'POST', headers:{'Content-Type':'application/json'},
-                            body: JSON.stringify({path: 'uploads/'+ghName, content: reader.result.split(',')[1], message: 'Upload: '+ghName}) });
-                        var res = await resp.json();
-                        resolve(res && res.success !== false);
-                    } catch(e) { resolve(false); }
-                };
-                reader.onerror = function() { resolve(false); };
-                reader.readAsDataURL(item.file);
-            });
-        }
-
         function closeUploadModal() {
             document.getElementById('uploadModalBackdrop').classList.remove('active');
             document.getElementById('lyricsEntryPanel').classList.remove('active');
             document.getElementById('lyricsTextarea').value = '';
-            document.getElementById('uploadOkBtn').textContent = 'Upload All';
-            _stagedUploadFiles = [];
             currentLyricsTrackContext = null;
         }
-        function closeAdminPanel() { showPanel('artist'); } // legacy — redirect to artist tab
-
-        function closeDiagnosticsPanel() { }
-        async function openDiagnosticsPanel() { showPanel('admin'); }
-
-        async function refreshDiagnostics() {
-            // Defer one tick so _activatePanel has finished switching the DOM
-            await new Promise(function(r){ setTimeout(r, 50); });
-            var el = document.getElementById('diagnosticsContent');
-            if (!el) return;
-            el.innerHTML = '<div style="color:var(--text-muted);padding:4px 0;">Running…</div>';
-            try { await _runDiagnostics(el); } catch(e) { el.innerHTML = '<div style="color:#e53e3e;padding:4px 0;">Error: ' + String(e) + '</div>'; }
-        }
-
-        async function _runDiagnostics(el) {
-            function row(label, value, ok) {
-                var colour = ok === true ? '#1DB954' : ok === false ? '#e53e3e' : 'var(--text)';
-                return '<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">'
-                    + '<span style="flex:0 0 200px;font-weight:600;color:var(--text-muted);">' + label + '</span>'
-                    + '<span style="flex:1;color:' + colour + ';word-break:break-all;">' + escHtml(String(value)) + '</span></div>';
-            }
-            function section(title) {
-                return '<div style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin:14px 0 4px;">' + title + '</div>';
-            }
-            function pending(label) {
-                return '<div id="diag-' + label.replace(/[^a-z0-9]/gi,'_') + '" style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">'
-                    + '<span style="flex:0 0 200px;font-weight:600;color:var(--text-muted);">' + label + '</span>'
-                    + '<span style="flex:1;color:var(--text-muted);">…</span></div>';
-            }
-            function updatePending(label, value, ok) {
-                var id = 'diag-' + label.replace(/[^a-z0-9]/gi,'_');
-                var el2 = document.getElementById(id);
-                if (el2) el2.outerHTML = row(label, value, ok);
-            }
-
-            // ── Render sync rows immediately ──────────────────────────────────
-            var html = '';
-
-            html += section('Dashboard Data');
-            html += row('Version', MLP.version || '(unknown)', null);
-            html += row('Generated', MLP.generated || '(unknown)', null);
-            html += row('Tracks loaded', MLP.tracks.length, MLP.tracks.length > 0);
-            html += row('Artists', (MLP.artists||[]).length, null);
-            html += row('Companies', (MLP.companies||[]).join(', ') || '(none)', null);
-            html += row('USD→GBP rate', MLP.usdToGbpRate || '(missing)', null);
-
-            html += section('Spotify Client');
-            var clientId = spotifyGetClientId();
-            html += row('Client ID in HTML', clientId ? clientId.slice(0,8)+'…' : '(EMPTY — auth will fail)', !!clientId);
-            html += row('Redirect URI', SPOTIFY_REDIRECT_URI, null);
-            html += row('Access token', _spotifyAccessToken ? '✓ present (' + _spotifyAccessToken.slice(0,8) + '…)' : '✗ not set', !!_spotifyAccessToken);
-            html += row('Refresh token', sessionStorage.getItem('sp_refresh') ? '✓ present' : '✗ not set', !!sessionStorage.getItem('sp_refresh'));
-            html += row('Mode', _spotifyMode || '(not connected)', _spotifyMode !== null);
-            html += row('Device ID', _spotifyDeviceId || '(none)', null);
-            html += row('User email', _spotifyUserEmail || '(not verified)', !!_spotifyUserEmail);
-
-            html += section('Library Summary');
-            var statuses = {};
-            MLP.tracks.forEach(function(t) { statuses[t.status] = (statuses[t.status]||0)+1; });
-            Object.keys(statuses).sort().forEach(function(s) { html += row(s, statuses[s] + ' tracks', null); });
-            var withErrors = MLP.tracks.filter(function(t){ return t.errors === 'Yes'; }).length;
-            html += row('Tracks with errors', withErrors, withErrors === 0);
-            html += row('Confidence scores loaded', Object.keys(_confidenceScores).length, null);
-            html += row('Pending errors', _pendingErrors.length, _pendingErrors.length === 0);
-
-            html += section('Environment');
-            html += row('URL', window.location.href, null);
-            html += row('User agent', navigator.userAgent.slice(0,60)+'…', null);
-            html += row('sessionStorage', (function(){ try { sessionStorage.setItem('_d','1'); sessionStorage.removeItem('_d'); return 'available'; } catch(e){ return 'unavailable'; } })(), null);
-            html += row('Service worker', 'serviceWorker' in navigator ? '✓ supported' : '✗ not supported', 'serviceWorker' in navigator);
-
-            // Placeholders for async checks
-            html += section('Cloudflare Worker');
-            html += row('Worker URL', WORKER_URL, null);
-            html += pending('Worker reachable');
-
-            html += section('GitHub Folders');
-            var folders = ['uploads', 'imports', 'error-reports', 'analytics'];
-            folders.forEach(function(f) { html += pending(f + '/'); });
-
-            el.innerHTML = html;
-
-            // ── Async checks — update placeholders in place ───────────────────
-            var fetchTimeout = function(url, opts, ms) {
-                var ctrl = new AbortController();
-                var t = setTimeout(function(){ ctrl.abort(); }, ms || 8000);
-                return fetch(url, Object.assign({}, opts, { signal: ctrl.signal })).finally(function(){ clearTimeout(t); });
-            };
-
-            // Worker ping
-            try {
-                var wResp = await fetchTimeout(WORKER_URL + '/github/list?path=uploads', {}, 6000);
-                var workerOk = wResp.status < 500;
-                updatePending('Worker reachable', workerOk ? '✓ HTTP ' + wResp.status : '✗ HTTP ' + wResp.status, workerOk);
-                // Parse the response for uploads count while we're at it
-                try {
-                    var wJson = await wResp.json();
-                    updatePending('uploads/', Array.isArray(wJson) ? wJson.length + ' file(s)' : '(unexpected response)', Array.isArray(wJson));
-                    folders = ['imports', 'error-reports', 'analytics']; // skip uploads, already done
-                } catch(e) { /* leave uploads pending */ }
-            } catch(e) {
-                updatePending('Worker reachable', '✗ ' + (e.name === 'AbortError' ? 'Timed out (6s)' : e.message), false);
-            }
-
-            // Remaining folders
-            for (var fi = 0; fi < folders.length; fi++) {
-                var fname = folders[fi];
-                try {
-                    var files = await Promise.race([
-                        ghList(fname),
-                        new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('Timed out')); }, 6000); })
-                    ]);
-                    updatePending(fname + '/', Array.isArray(files) ? files.length + ' file(s)' : '(error)', Array.isArray(files));
-                } catch(e) { updatePending(fname + '/', '✗ ' + e.message, false); }
-            }
-        }
+        function toggleAdminPanel() { document.getElementById('adminModalBackdrop').classList.add('active'); }
+        function closeAdminPanel()  { document.getElementById('adminModalBackdrop').classList.remove('active'); }
         function triggerAdminImport(importType) {
             var input = document.createElement('input');
             input.type = 'file'; input.accept = '.csv,.zip,.png,.jpg,.jpeg,.mp4,.mp3,.txt'; input.multiple = true;
             input.onchange = function() {
                 if (!input.files || !input.files.length) return;
+                closeAdminPanel();
                 uploadFilesToGitHub(Array.from(input.files), importType);
             };
             input.click();
@@ -1304,69 +1117,50 @@
                 document.getElementById('lyricsEntryPanel').classList.add('active');
                 document.getElementById('lyricsTextarea').focus(); return;
             }
-            // Open file picker; add chosen file(s) to staged list
-            _uploadAssetCtx = { id: id, songName: songName, assetType: assetType, acceptAttr: acceptAttr, expectedExt: expectedExt };
-            var input = document.createElement('input');
-            input.type = 'file'; input.accept = acceptAttr || '*'; input.multiple = true;
-            input.onchange = function() {
-                if (!input.files || !input.files.length) return;
-                for (var i = 0; i < input.files.length; i++) {
-                    var file = input.files[i];
-                    var ext = (file.name.split('.').pop()||'').toLowerCase();
-                    if (expectedExt && ext !== expectedExt) { alert('Expected a .' + expectedExt + ' file. Skipping: ' + file.name); continue; }
-                    _stagedUploadFiles.push({ file: file, assetType: assetType, songName: songName, acceptAttr: acceptAttr, expectedExt: expectedExt });
-                }
-                _renderStagedList();
-            };
-            input.click();
+            triggerAssetUpload(id, songName, assetType, acceptAttr, expectedExt);
         }
-        function switchLyricsToFileUpload() { if (!currentLyricsTrackContext) return; var c = currentLyricsTrackContext; openUploadRowAction(c.id, c.songName, 'Lyrics', c.acceptAttr, c.expectedExt); }
-        async function dispatchLyricsTextViaEmail() {
+        function switchLyricsToFileUpload() { if (!currentLyricsTrackContext) return; var c = currentLyricsTrackContext; triggerAssetUpload(c.id, c.songName, 'Lyrics', c.acceptAttr, c.expectedExt); }
+        function dispatchLyricsTextViaEmail() {
             if (!currentLyricsTrackContext) return;
             var text = document.getElementById('lyricsTextarea').value.trim();
             if (!text) { alert('Type or paste the lyrics first, or tap "Upload a .txt file instead".'); return; }
             var name = currentLyricsTrackContext.songName;
-            var safeName = name.replace(/ /g,'_');
-            var filename = safeName + '-lyrics.txt';
-            var path = 'uploads/' + safeName + '__Lyrics__' + filename;
-            try {
-                var b64 = toBase64(text);
-                var resp = await fetch(WORKER_URL + '/github/push', { method:'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ path: path, content: b64, message: 'Lyrics upload: ' + name }) });
-                var res = await resp.json();
-                if (res && res.success !== false) { alert('Lyrics uploaded! Will be saved on next run.'); closeUploadModal(); }
-                else { alert('Upload failed. Please try again.'); }
-            } catch(e) { alert('Error: ' + e); }
+            window.location.href = 'mailto:phelzier1@gmail.com?subject=' + encodeURIComponent('[MLP] [ASSET UPLOAD TEXT] ' + name + ' - Lyrics') + '&body=' + encodeURIComponent('Lyrics for "' + name + '":\n\n' + text + '\n\nPlease save this as the lyrics for this track.');
+            closeUploadModal();
         }
-        async function dispatchPublicationUpdateViaEmail(id, name) {
+        function dispatchPublicationUpdateViaEmail(id, name) {
             var platform = document.getElementById('pub-platform-' + id).value.trim();
             var date     = document.getElementById('pub-date-' + id).value.trim();
             var link     = document.getElementById('pub-link-' + id).value.trim();
             if (!platform) { alert('Enter at least a platform name.'); return; }
-            var ts = new Date().toISOString();
-            var safeName = name.replace(/ /g,'_');
-            var payload = { type: 'publication', songName: name, platform: platform, pubDate: date, link: link, submittedBy: _spotifyUserEmail || 'unknown', submittedAt: ts };
-            var path = 'imports/publication__' + ts.slice(0,10) + '__' + safeName + '.json';
-            try {
-                var resp = await fetch(WORKER_URL + '/github/push', { method:'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ path: path, content: toBase64(JSON.stringify(payload, null, 2)), message: 'Publication: ' + name }) });
-                var res = await resp.json();
-                if (res && res.success !== false) { alert('Saved! Publication status will update on next run.'); togglePublicationForm(id); }
-                else { alert('Failed to save publication update. Please try again.'); }
-            } catch(e) { alert('Error: ' + e); }
+            window.location.href = 'mailto:phelzier1@gmail.com?subject=' + encodeURIComponent('[MLP] [PUBLICATION UPDATE] ' + name) + '&body=' + encodeURIComponent('Publication update for "' + name + '":\n\nPlatform: ' + platform + (date ? '\nDate: ' + date : '') + (link ? '\nLink: ' + link : '') + '\n\nPlease update this track\'s publication status.');
+            togglePublicationForm(id);
         }
-        async function dispatchVerificationMarkViaEmail(id, name) {
+        function dispatchVerificationMarkViaEmail(id, name) {
             var ts = new Date().toISOString();
-            var safeName = name.replace(/ /g,'_');
-            var payload = { type: 'verify', songName: name, timestamp: ts, submittedBy: _spotifyUserEmail || 'unknown' };
-            var path = 'imports/verify__' + ts.slice(0,10) + '__' + safeName + '.json';
-            try {
-                var resp = await fetch(WORKER_URL + '/github/push', { method:'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({ path: path, content: toBase64(JSON.stringify(payload, null, 2)), message: 'Verify: ' + name }) });
-                var res = await resp.json();
-                if (res && res.success !== false) { alert('Verified! Will be recorded on next run.'); }
-                else { alert('Failed to record verification. Please try again.'); }
-            } catch(e) { alert('Error: ' + e); }
+            window.location.href = 'mailto:phelzier1@gmail.com?subject=' + encodeURIComponent('[MLP] [VERIFY] ' + name) + '&body=' + encodeURIComponent('Verification mark for "' + name + '":\n\nTimestamp: ' + ts + '\n\nPlease record this as a verification for this track.');
+        }
+        function triggerAssetUpload(id, name, assetType, acceptAttr, expectedExt) {
+            var input = document.createElement('input');
+            input.type = 'file'; input.accept = acceptAttr || '*';
+            input.onchange = async function() {
+                if (!input.files || !input.files.length) return;
+                var file = input.files[0];
+                var ext = (file.name.split('.').pop()||'').toLowerCase();
+                if (expectedExt && ext !== expectedExt) { alert('Expected a .' + expectedExt + ' file.'); return; }
+                var ghName = name.replace(/ /g,'_') + '__' + assetType + '__' + file.name;
+                var reader = new FileReader();
+                reader.onload = async function() {
+                    try {
+                        var resp = await fetch(WORKER_URL + '/github/push', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({path: 'uploads/'+ghName, content: reader.result.split(',')[1], message: 'Upload: '+ghName}) });
+                        var res = await resp.json();
+                        if (res && res.success !== false) { alert('Uploaded!'); closeUploadModal(); }
+                        else { alert('Upload failed. Please try again.'); }
+                    } catch(e) { alert('Error: ' + e); }
+                };
+                reader.readAsDataURL(file);
+            };
+            input.click();
         }
         var stagedErrorEntries = {}; // id -> [{time, error, fix}]
         var TIME_MMSS_PATTERN = /^\d{1,2}:\d{2}$/;
@@ -1397,7 +1191,7 @@
             document.getElementById('input-fix-' + id).value = '';
         }
 
-        async function dispatchStagedErrorsViaGitHub(id, name) {
+        async function dispatchStagedErrorsViaDrive(id, name) {
             var entries = stagedErrorEntries[id] || [];
             if (entries.length === 0) {
                 var t = document.getElementById('input-stamp-' + id).value.trim();
@@ -1463,19 +1257,6 @@
         var _spotifyCurrentMs = 0;
         var _spotifyIsPlaying = false;
         var _spotifyDurationMs = 1;
-        var _spotifyUserEmail = null;
-
-        var SPOTIFY_ALLOWED_DOMAINS = ['psfamily.co.uk','psfamily.net','benandtish.co.uk','2themaxxx.co.uk','4themaxxx.co.uk'];
-
-        async function verifySpotifyUser() {
-            try {
-                var resp = await spotifyApiCall('GET', '/me');
-                if (!resp || !resp.email) return false;
-                _spotifyUserEmail = resp.email;
-                var domain = _spotifyUserEmail.split('@')[1] || '';
-                return SPOTIFY_ALLOWED_DOMAINS.indexOf(domain) !== -1;
-            } catch(e) { return false; }
-        }
 
         // PKCE helpers
         function _pkceRandom(len) {
@@ -1843,7 +1624,7 @@
                 html += '<div class="sp-pl-row" data-uri="'+escHtml(pl.uri)+'" data-id="'+escHtml(pl.id)+'" style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:var(--bg-card);cursor:pointer;">' +
                     (img ? '<img src="'+img+'" style="width:44px;height:44px;border-radius:4px;flex-shrink:0;" />' : '<div style="width:44px;height:44px;border-radius:4px;background:var(--bg-section);flex-shrink:0;"></div>') +
                     '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(pl.name)+'</div>' +
-                    '<div style="font-size:0.75rem;color:var(--text-muted);">'+((pl.items&&pl.items.total)||(pl.tracks&&pl.tracks.total)||0)+' tracks</div></div>' +
+                    '<div style="font-size:0.75rem;color:var(--text-muted);">'+((pl.tracks&&pl.tracks.total)||0)+' tracks</div></div>' +
                     '<button class="sp-pl-play-btn" data-uri="'+escHtml(pl.uri)+'" style="background:#1DB954;color:#fff;border:none;border-radius:5px;padding:5px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;">▶</button>' +
                     '<span style="font-size:0.75rem;color:var(--text-muted);">&#9654; Open</span></div>';
             });
@@ -1861,24 +1642,14 @@
                     if (e.target.tagName === 'BUTTON') return;
                     var id = this.dataset.id;
                     if (!_spPlaylistTracks[id]) {
-                        var td = await spotifyApiCall('GET', '/playlists/'+id+'/items?limit=50&fields=items(item(uri,name,artists,album))');
-                        if (!td) {
-                            // New API restriction: track contents are only returned for playlists
-                            // you own or collaborate on. Followed/other playlists return no items.
-                            _spPlaylistTracks[id] = [];
-                        } else {
-                            _spPlaylistTracks[id] = (td.items||[]).map(function(i){return i.item;}).filter(Boolean);
-                        }
+                        var td = await spotifyApiCall('GET', '/playlists/'+id+'/tracks?limit=50&fields=items(track(uri,name,artists,album))');
+                        _spPlaylistTracks[id] = td ? (td.items||[]).map(function(i){return i.track;}).filter(Boolean) : [];
                     }
                     var tracks = _spPlaylistTracks[id];
                     var uris = tracks.map(function(t){return t.uri;});
                     var subEl = document.createElement('div');
                     subEl.style.cssText = 'padding:8px 0 0 54px;';
-                    if (!tracks.length) {
-                        subEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.8rem;padding:8px 0;">Track list not available — this is a followed playlist, not one you own or collaborate on.</div>';
-                    } else {
-                        tracks.forEach(function(t) { subEl.appendChild(renderSpotifyTrackRow(t, uris, 'playlist')); });
-                    }
+                    tracks.forEach(function(t) { subEl.appendChild(renderSpotifyTrackRow(t, uris, 'playlist')); });
                     var existing = this.nextSibling;
                     if (existing && existing.classList && existing.classList.contains('sp-pl-tracks')) {
                         existing.remove();
@@ -1944,30 +1715,6 @@
             }
         }
 
-        function showAuthScreen(message) {
-            var overlay = document.getElementById('spAuthOverlay');
-            if (!overlay) {
-                overlay = document.createElement('div');
-                overlay.id = 'spAuthOverlay';
-                overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
-                overlay.innerHTML =
-                    '<div style="background:#fff;border-radius:12px;padding:32px;max-width:420px;text-align:center;font-family:inherit;">' +
-                        '<div style="font-size:2.5rem;margin-bottom:12px;">&#x1F512;</div>' +
-                        '<div id="spAuthMessage" style="color:#e53e3e;font-weight:600;margin-bottom:20px;line-height:1.4;"></div>' +
-                        '<button id="spAuthRetryBtn" style="background:#1DB954;color:#fff;border:none;border-radius:24px;padding:10px 28px;font-weight:700;cursor:pointer;">Try again</button>' +
-                    '</div>';
-                document.body.appendChild(overlay);
-                document.getElementById('spAuthRetryBtn').onclick = function() { spotifyAuth(); };
-            }
-            document.getElementById('spAuthMessage').textContent = message || 'Spotify login failed. Please try again.';
-            overlay.style.display = 'flex';
-        }
-
-        function hideAuthScreen() {
-            var overlay = document.getElementById('spAuthOverlay');
-            if (overlay) overlay.style.display = 'none';
-        }
-
         async function spotifyAuth() {
             var clientId = spotifyGetClientId();
             if (!clientId) { alert('Spotify client ID not configured in dashboard.'); return; }
@@ -1985,15 +1732,6 @@
         async function spotifyExchangeCode(code) {
             var clientId = spotifyGetClientId();
             var verifier = sessionStorage.getItem('pkce_verifier');
-
-            // Strip the code from the URL and clear the verifier immediately, before the
-            // exchange even runs. Auth codes are single-use — if this attempt fails for any
-            // reason, we never want a page refresh to silently retry the same dead code.
-            sessionStorage.removeItem('pkce_verifier');
-            var url = new URL(window.location);
-            url.searchParams.delete('code');
-            history.replaceState({}, '', url);
-
             var resp = await fetch(SPOTIFY_TOKEN_WORKER, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2006,12 +1744,14 @@
                 _spotifyRefreshToken = data.refresh_token;
                 _spotifyTokenExpiry = Date.now() + (data.expires_in * 1000) - 60000;
                 sessionStorage.setItem('sp_refresh', _spotifyRefreshToken);
+                sessionStorage.removeItem('pkce_verifier');
+                var url = new URL(window.location);
+                url.searchParams.delete('code');
+                history.replaceState({}, '', url);
                 verifySpotifyUser().then(function(allowed) {
                     if (allowed) { hideAuthScreen(); spotifyInit(); }
                     else { _spotifyAccessToken = null; sessionStorage.removeItem('sp_refresh'); showAuthScreen('Access denied. Your Spotify account (' + _spotifyUserEmail + ') is not authorised.'); }
                 });
-            } else {
-                showAuthScreen('Spotify login failed (' + (data.error_description || data.error || 'unknown error') + '). Please try again.');
             }
         }
 
@@ -2044,20 +1784,8 @@
             try { return await resp.json(); } catch(e) { return {}; }
         }
 
-        // Called by Spotify SDK when the script itself finishes loading (fires exactly once,
-        // automatically, regardless of whether we have a token yet).
+        // Called by Spotify SDK when ready
         window.onSpotifyWebPlaybackSDKReady = function() {
-            _spotifyCreatePlayerAndConnect();
-        };
-
-        // Actually creates and connects the SDK player. Callable both from the auto-fired
-        // onSpotifyWebPlaybackSDKReady callback above, AND from spotifyInit() below — because
-        // the SDK script can finish loading (and fire its one-time ready callback) BEFORE our
-        // async token refresh completes. If that happens, the callback bails out early since
-        // there's no token yet, and without this second call path the player would never get
-        // created and _spotifyMode would stay null forever with no fallback.
-        function _spotifyCreatePlayerAndConnect() {
-            if (_spotifyPlayer) return; // already created, don't double-init
             var clientId = spotifyGetClientId();
             if (!clientId || !_spotifyAccessToken) return;
             _spotifyPlayer = new Spotify.Player({
@@ -2089,10 +1817,9 @@
             _spotifyPlayer.connect().then(function(ok) {
                 if (!ok) spotifyFallbackToApi();
             });
-        }
+        };
 
         function spotifyFallbackToApi() {
-            if (_spotifyMode) return; // already resolved (sdk or api) — don't clobber
             _spotifyMode = 'api';
             showPlayerDock();
             startSpotifyPoll();
@@ -2114,6 +1841,8 @@
         function showPlayerDock() {
             document.getElementById('playerDock').classList.add('visible');
             document.body.style.paddingBottom = '70px';
+            var btn = document.getElementById('spotifyConnectBtn');
+            if (btn) btn.style.display = 'none'; // auto-connected; button not needed
             // Show Spotify tab
             var spTab = document.getElementById('tab-spotify');
             if (spTab) spTab.style.display = '';
@@ -2251,18 +1980,12 @@
         })();
 
         function spotifyInit() {
+            // Try SDK first; if onSpotifyWebPlaybackSDKReady fires and connects, we use SDK mode.
+            // If SDK fails, spotifyFallbackToApi() is called automatically.
+            // For API-only mode (fallback), start polling immediately.
             if (typeof Spotify === 'undefined') {
-                // SDK script hasn't finished loading yet. It will call
-                // window.onSpotifyWebPlaybackSDKReady automatically once it does — but if it
-                // never loads (blocked, network issue, ad-blocker, etc.) that never fires, so
-                // fall back to API mode after a timeout rather than staying stuck forever.
-                setTimeout(function() {
-                    if (!_spotifyMode) spotifyFallbackToApi();
-                }, 4000);
-            } else {
-                // SDK script already finished loading — meaning its one-time ready callback
-                // already fired and fired too early (before we had a token), so it bailed out
-                // and no player was ever created. Create it now that we actually have a token.
-                _spotifyCreatePlayerAndConnect();
+                // SDK script not loaded yet — poll loaded event or just use API
+                spotifyFallbackToApi();
             }
+            // SDK path handled by onSpotifyWebPlaybackSDKReady
         }
