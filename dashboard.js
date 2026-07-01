@@ -1118,6 +1118,90 @@
         }
         function toggleAdminPanel() { document.getElementById('adminModalBackdrop').classList.add('active'); }
         function closeAdminPanel()  { document.getElementById('adminModalBackdrop').classList.remove('active'); }
+
+        function closeDiagnosticsPanel() { document.getElementById('diagnosticsModalBackdrop').classList.remove('active'); }
+
+        async function openDiagnosticsPanel() {
+            document.getElementById('diagnosticsModalBackdrop').classList.add('active');
+            await refreshDiagnostics();
+        }
+
+        async function refreshDiagnostics() {
+            var el = document.getElementById('diagnosticsContent');
+            el.innerHTML = '<div style="color:var(--text-muted);padding:8px;">Running checks…</div>';
+
+            var rows = [];
+
+            function row(label, value, ok) {
+                var colour = ok === true ? '#1DB954' : ok === false ? '#e53e3e' : 'var(--text)';
+                rows.push('<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">'
+                    + '<span style="flex:0 0 220px;font-weight:600;color:var(--text-muted);">' + label + '</span>'
+                    + '<span style="flex:1;color:' + colour + ';word-break:break-all;">' + escHtml(String(value)) + '</span></div>');
+            }
+
+            function section(title) {
+                rows.push('<div style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin:14px 0 4px;">' + title + '</div>');
+            }
+
+            // ── DATA ─────────────────────────────────────────────────────────
+            section('Dashboard Data');
+            row('Generated', MLP.generated || '(unknown)', null);
+            row('Tracks loaded', MLP.tracks.length, MLP.tracks.length > 0);
+            row('Artists', (MLP.artists||[]).length, null);
+            row('Companies', (MLP.companies||[]).join(', ') || '(none)', null);
+            row('USD→GBP rate', MLP.usdToGbpRate || '(missing)', null);
+
+            // ── SPOTIFY CLIENT ────────────────────────────────────────────────
+            section('Spotify Client');
+            var clientId = spotifyGetClientId();
+            row('Client ID in HTML', clientId ? clientId.slice(0,8)+'…' : '(EMPTY — auth will fail)', !!clientId);
+            row('Redirect URI', SPOTIFY_REDIRECT_URI, null);
+            row('Access token', _spotifyAccessToken ? '✓ present (' + _spotifyAccessToken.slice(0,8) + '…)' : '✗ not set', !!_spotifyAccessToken);
+            row('Refresh token (session)', sessionStorage.getItem('sp_refresh') ? '✓ present' : '✗ not set', !!sessionStorage.getItem('sp_refresh'));
+            row('Mode', _spotifyMode || '(not connected)', _spotifyMode !== null);
+            row('Device ID', _spotifyDeviceId || '(none)', null);
+            row('User email', _spotifyUserEmail || '(not verified)', !!_spotifyUserEmail);
+            row('Is playing', _spotifyIsPlaying, null);
+
+            // ── WORKER ────────────────────────────────────────────────────────
+            section('Cloudflare Worker');
+            row('Worker URL', WORKER_URL, null);
+            var workerOk = false;
+            try {
+                var wResp = await fetch(WORKER_URL + '/spotify/token', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({grant_type:'ping'}) });
+                workerOk = wResp.status < 500;
+                row('Worker reachable', workerOk ? '✓ HTTP ' + wResp.status : '✗ HTTP ' + wResp.status, workerOk);
+            } catch(e) { row('Worker reachable', '✗ ' + e.message, false); }
+
+            // ── GITHUB ────────────────────────────────────────────────────────
+            section('GitHub Folders');
+            var folders = ['uploads', 'imports', 'error-reports', 'analytics'];
+            for (var fi = 0; fi < folders.length; fi++) {
+                try {
+                    var files = await ghList(folders[fi]);
+                    row(folders[fi] + '/', Array.isArray(files) ? files.length + ' file(s)' : '(error)', Array.isArray(files));
+                } catch(e) { row(folders[fi] + '/', '✗ ' + e.message, false); }
+            }
+
+            // ── LIBRARY ───────────────────────────────────────────────────────
+            section('Library Summary');
+            var statuses = {};
+            MLP.tracks.forEach(function(t) { statuses[t.status] = (statuses[t.status]||0)+1; });
+            Object.keys(statuses).sort().forEach(function(s) { row(s, statuses[s] + ' tracks', null); });
+            var withErrors = MLP.tracks.filter(function(t){ return t.errors === 'Yes'; }).length;
+            row('Tracks with errors', withErrors, withErrors === 0);
+            row('Confidence scores loaded', Object.keys(_confidenceScores).length, null);
+            row('Pending errors', _pendingErrors.length, _pendingErrors.length === 0);
+
+            // ── ENVIRONMENT ───────────────────────────────────────────────────
+            section('Environment');
+            row('URL', window.location.href, null);
+            row('User agent', navigator.userAgent.slice(0,80), null);
+            row('Storage (sessionStorage)', (function(){ try { sessionStorage.setItem('_diag','1'); sessionStorage.removeItem('_diag'); return 'available'; } catch(e){ return 'unavailable: '+e; } })(), null);
+            row('Service worker', 'serviceWorker' in navigator ? '✓ supported' : '✗ not supported', 'serviceWorker' in navigator);
+
+            el.innerHTML = rows.join('');
+        }
         function triggerAdminImport(importType) {
             var input = document.createElement('input');
             input.type = 'file'; input.accept = '.csv,.zip,.png,.jpg,.jpeg,.mp4,.mp3,.txt'; input.multiple = true;
@@ -1206,7 +1290,7 @@
             };
             input.click();
         }
-        function switchLyricsToFileUpload() { if (!currentLyricsTrackContext) return; var c = currentLyricsTrackContext; triggerAssetUpload(c.id, c.songName, 'Lyrics', c.acceptAttr, c.expectedExt); }
+        function switchLyricsToFileUpload() { if (!currentLyricsTrackContext) return; var c = currentLyricsTrackContext; openUploadRowAction(c.id, c.songName, 'Lyrics', c.acceptAttr, c.expectedExt); }
         async function dispatchLyricsTextViaEmail() {
             if (!currentLyricsTrackContext) return;
             var text = document.getElementById('lyricsTextarea').value.trim();
