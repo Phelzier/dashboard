@@ -1128,80 +1128,107 @@
 
         async function refreshDiagnostics() {
             var el = document.getElementById('diagnosticsContent');
-            el.innerHTML = '<div style="color:var(--text-muted);padding:8px;">Running checks…</div>';
-
-            var rows = [];
 
             function row(label, value, ok) {
                 var colour = ok === true ? '#1DB954' : ok === false ? '#e53e3e' : 'var(--text)';
-                rows.push('<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">'
-                    + '<span style="flex:0 0 220px;font-weight:600;color:var(--text-muted);">' + label + '</span>'
-                    + '<span style="flex:1;color:' + colour + ';word-break:break-all;">' + escHtml(String(value)) + '</span></div>');
+                return '<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">'
+                    + '<span style="flex:0 0 200px;font-weight:600;color:var(--text-muted);">' + label + '</span>'
+                    + '<span style="flex:1;color:' + colour + ';word-break:break-all;">' + escHtml(String(value)) + '</span></div>';
             }
-
             function section(title) {
-                rows.push('<div style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin:14px 0 4px;">' + title + '</div>');
+                return '<div style="font-size:0.75rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin:14px 0 4px;">' + title + '</div>';
+            }
+            function pending(label) {
+                return '<div id="diag-' + label.replace(/[^a-z0-9]/gi,'_') + '" style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">'
+                    + '<span style="flex:0 0 200px;font-weight:600;color:var(--text-muted);">' + label + '</span>'
+                    + '<span style="flex:1;color:var(--text-muted);">…</span></div>';
+            }
+            function updatePending(label, value, ok) {
+                var id = 'diag-' + label.replace(/[^a-z0-9]/gi,'_');
+                var el2 = document.getElementById(id);
+                if (el2) el2.outerHTML = row(label, value, ok);
             }
 
-            // ── DATA ─────────────────────────────────────────────────────────
-            section('Dashboard Data');
-            row('Version', MLP.version || '(unknown)', null);
-            row('Generated', MLP.generated || '(unknown)', null);
-            row('Tracks loaded', MLP.tracks.length, MLP.tracks.length > 0);
-            row('Artists', (MLP.artists||[]).length, null);
-            row('Companies', (MLP.companies||[]).join(', ') || '(none)', null);
-            row('USD→GBP rate', MLP.usdToGbpRate || '(missing)', null);
+            // ── Render sync rows immediately ──────────────────────────────────
+            var html = '';
 
-            // ── SPOTIFY CLIENT ────────────────────────────────────────────────
-            section('Spotify Client');
+            html += section('Dashboard Data');
+            html += row('Version', MLP.version || '(unknown)', null);
+            html += row('Generated', MLP.generated || '(unknown)', null);
+            html += row('Tracks loaded', MLP.tracks.length, MLP.tracks.length > 0);
+            html += row('Artists', (MLP.artists||[]).length, null);
+            html += row('Companies', (MLP.companies||[]).join(', ') || '(none)', null);
+            html += row('USD→GBP rate', MLP.usdToGbpRate || '(missing)', null);
+
+            html += section('Spotify Client');
             var clientId = spotifyGetClientId();
-            row('Client ID in HTML', clientId ? clientId.slice(0,8)+'…' : '(EMPTY — auth will fail)', !!clientId);
-            row('Redirect URI', SPOTIFY_REDIRECT_URI, null);
-            row('Access token', _spotifyAccessToken ? '✓ present (' + _spotifyAccessToken.slice(0,8) + '…)' : '✗ not set', !!_spotifyAccessToken);
-            row('Refresh token (session)', sessionStorage.getItem('sp_refresh') ? '✓ present' : '✗ not set', !!sessionStorage.getItem('sp_refresh'));
-            row('Mode', _spotifyMode || '(not connected)', _spotifyMode !== null);
-            row('Device ID', _spotifyDeviceId || '(none)', null);
-            row('User email', _spotifyUserEmail || '(not verified)', !!_spotifyUserEmail);
-            row('Is playing', _spotifyIsPlaying, null);
+            html += row('Client ID in HTML', clientId ? clientId.slice(0,8)+'…' : '(EMPTY — auth will fail)', !!clientId);
+            html += row('Redirect URI', SPOTIFY_REDIRECT_URI, null);
+            html += row('Access token', _spotifyAccessToken ? '✓ present (' + _spotifyAccessToken.slice(0,8) + '…)' : '✗ not set', !!_spotifyAccessToken);
+            html += row('Refresh token', sessionStorage.getItem('sp_refresh') ? '✓ present' : '✗ not set', !!sessionStorage.getItem('sp_refresh'));
+            html += row('Mode', _spotifyMode || '(not connected)', _spotifyMode !== null);
+            html += row('Device ID', _spotifyDeviceId || '(none)', null);
+            html += row('User email', _spotifyUserEmail || '(not verified)', !!_spotifyUserEmail);
 
-            // ── WORKER ────────────────────────────────────────────────────────
-            section('Cloudflare Worker');
-            row('Worker URL', WORKER_URL, null);
-            var workerOk = false;
-            try {
-                var wResp = await fetch(WORKER_URL + '/spotify/token', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({grant_type:'ping'}) });
-                workerOk = wResp.status < 500;
-                row('Worker reachable', workerOk ? '✓ HTTP ' + wResp.status : '✗ HTTP ' + wResp.status, workerOk);
-            } catch(e) { row('Worker reachable', '✗ ' + e.message, false); }
-
-            // ── GITHUB ────────────────────────────────────────────────────────
-            section('GitHub Folders');
-            var folders = ['uploads', 'imports', 'error-reports', 'analytics'];
-            for (var fi = 0; fi < folders.length; fi++) {
-                try {
-                    var files = await ghList(folders[fi]);
-                    row(folders[fi] + '/', Array.isArray(files) ? files.length + ' file(s)' : '(error)', Array.isArray(files));
-                } catch(e) { row(folders[fi] + '/', '✗ ' + e.message, false); }
-            }
-
-            // ── LIBRARY ───────────────────────────────────────────────────────
-            section('Library Summary');
+            html += section('Library Summary');
             var statuses = {};
             MLP.tracks.forEach(function(t) { statuses[t.status] = (statuses[t.status]||0)+1; });
-            Object.keys(statuses).sort().forEach(function(s) { row(s, statuses[s] + ' tracks', null); });
+            Object.keys(statuses).sort().forEach(function(s) { html += row(s, statuses[s] + ' tracks', null); });
             var withErrors = MLP.tracks.filter(function(t){ return t.errors === 'Yes'; }).length;
-            row('Tracks with errors', withErrors, withErrors === 0);
-            row('Confidence scores loaded', Object.keys(_confidenceScores).length, null);
-            row('Pending errors', _pendingErrors.length, _pendingErrors.length === 0);
+            html += row('Tracks with errors', withErrors, withErrors === 0);
+            html += row('Confidence scores loaded', Object.keys(_confidenceScores).length, null);
+            html += row('Pending errors', _pendingErrors.length, _pendingErrors.length === 0);
 
-            // ── ENVIRONMENT ───────────────────────────────────────────────────
-            section('Environment');
-            row('URL', window.location.href, null);
-            row('User agent', navigator.userAgent.slice(0,80), null);
-            row('Storage (sessionStorage)', (function(){ try { sessionStorage.setItem('_diag','1'); sessionStorage.removeItem('_diag'); return 'available'; } catch(e){ return 'unavailable: '+e; } })(), null);
-            row('Service worker', 'serviceWorker' in navigator ? '✓ supported' : '✗ not supported', 'serviceWorker' in navigator);
+            html += section('Environment');
+            html += row('URL', window.location.href, null);
+            html += row('User agent', navigator.userAgent.slice(0,60)+'…', null);
+            html += row('sessionStorage', (function(){ try { sessionStorage.setItem('_d','1'); sessionStorage.removeItem('_d'); return 'available'; } catch(e){ return 'unavailable'; } })(), null);
+            html += row('Service worker', 'serviceWorker' in navigator ? '✓ supported' : '✗ not supported', 'serviceWorker' in navigator);
 
-            el.innerHTML = rows.join('');
+            // Placeholders for async checks
+            html += section('Cloudflare Worker');
+            html += row('Worker URL', WORKER_URL, null);
+            html += pending('Worker reachable');
+
+            html += section('GitHub Folders');
+            var folders = ['uploads', 'imports', 'error-reports', 'analytics'];
+            folders.forEach(function(f) { html += pending(f + '/'); });
+
+            el.innerHTML = html;
+
+            // ── Async checks — update placeholders in place ───────────────────
+            var fetchTimeout = function(url, opts, ms) {
+                var ctrl = new AbortController();
+                var t = setTimeout(function(){ ctrl.abort(); }, ms || 8000);
+                return fetch(url, Object.assign({}, opts, { signal: ctrl.signal })).finally(function(){ clearTimeout(t); });
+            };
+
+            // Worker ping
+            try {
+                var wResp = await fetchTimeout(WORKER_URL + '/github/list?path=uploads', {}, 6000);
+                var workerOk = wResp.status < 500;
+                updatePending('Worker reachable', workerOk ? '✓ HTTP ' + wResp.status : '✗ HTTP ' + wResp.status, workerOk);
+                // Parse the response for uploads count while we're at it
+                try {
+                    var wJson = await wResp.json();
+                    updatePending('uploads/', Array.isArray(wJson) ? wJson.length + ' file(s)' : '(unexpected response)', Array.isArray(wJson));
+                    folders = ['imports', 'error-reports', 'analytics']; // skip uploads, already done
+                } catch(e) { /* leave uploads pending */ }
+            } catch(e) {
+                updatePending('Worker reachable', '✗ ' + (e.name === 'AbortError' ? 'Timed out (6s)' : e.message), false);
+            }
+
+            // Remaining folders
+            for (var fi = 0; fi < folders.length; fi++) {
+                var fname = folders[fi];
+                try {
+                    var files = await Promise.race([
+                        ghList(fname),
+                        new Promise(function(_,rej){ setTimeout(function(){ rej(new Error('Timed out')); }, 6000); })
+                    ]);
+                    updatePending(fname + '/', Array.isArray(files) ? files.length + ' file(s)' : '(error)', Array.isArray(files));
+                } catch(e) { updatePending(fname + '/', '✗ ' + e.message, false); }
+            }
         }
         function triggerAdminImport(importType) {
             var input = document.createElement('input');
