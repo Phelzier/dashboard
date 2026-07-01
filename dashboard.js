@@ -12,6 +12,127 @@
         var DRIVE_UPLOAD_FORM_URL = "https://script.google.com/macros/s/AKfycbyDUHTdym61L6ztjTgdO2E4ImWFDcKh6vFspTUIPe2Fz7qTLPcWt79rTPPHZNF17_c/exec";
         var KEY_NAMES = ['C','C♯/D♭','D','D♯/E♭','E','F','F♯/G♭','G','G♯/A♭','A','A♯/B♭','B'];
 
+        // ── DATA MODEL ──
+        var MLP = { tracks: [], artists: [], profiles: [], companies: [], summary: {}, usdToGbpRate: 1, appsScriptUrl: '', generated: '' };
+        var _trackMap = {};
+
+        (function loadData() {
+            fetch('./data.json?v=' + Date.now())
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    MLP = data;
+                    MLP.tracks.forEach(function(t) { _trackMap[t.id] = t; });
+                    if (data.usdToGbpRate) window.USD_TO_GBP = data.usdToGbpRate;
+                    if (data.appsScriptUrl) DRIVE_UPLOAD_FORM_URL = data.appsScriptUrl;
+                    populateFilterDropdowns();
+                    renderArtistPanel();
+                    renderSummaryCards();
+                    evaluateControlMatrix();
+                })
+                .catch(function(err) {
+                    document.getElementById('cardsContainer').innerHTML = '<div style="padding:20px;color:#e53e3e;">Failed to load dashboard data. Please refresh. (' + err + ')</div>';
+                });
+        })();
+
+        function populateFilterDropdowns() {
+            var ps = document.getElementById('profileSelect');
+            while (ps.options.length > 2) ps.remove(2);
+            (MLP.profiles || []).forEach(function(p) { var o = document.createElement('option'); o.value = p; o.text = p; ps.appendChild(o); });
+            var ss = document.getElementById('sortBySelect');
+            while (ss.options.length > 2) ss.remove(2);
+            (MLP.companies || []).forEach(function(c) { var k = c.replace(/[^a-zA-Z0-9]/g,'').toLowerCase(); var o = document.createElement('option'); o.value = 'earnings-' + k; o.text = 'Sort: ' + c; ss.appendChild(o); });
+        }
+
+        function renderSummaryCards() {
+            var s = MLP.summary || {};
+            var el = function(id, val) { var e = document.getElementById(id); if (e) { var n = e.querySelector('.summary-num'); if (n) n.textContent = val; } };
+            el('btn-all', s.total || 0); el('btn-ready', s.ready || 0); el('btn-missing', s.missing || 0); el('btn-errors', s.errors || 0);
+        }
+
+        function renderArtistPanel() {
+            var container = document.getElementById('panel-artist');
+            if (!container || !MLP.artists) return;
+            var grid = container.querySelector('.artist-grid');
+            if (!grid) { grid = document.createElement('div'); grid.className = 'artist-grid'; container.appendChild(grid); }
+            grid.innerHTML = '';
+            MLP.artists.forEach(function(artist) {
+                var imgHtml = artist.heroImg ? '<img class="artist-card-hero" src="' + escHtml(artist.heroImg) + '" alt="' + escHtml(artist.name) + '">' : '<div class="artist-card-hero" style="display:flex;align-items:center;justify-content:center;font-size:4rem;background:#e2e8f0;">\uD83C\uDFA4</div>';
+                var albumsHtml = (artist.albums || []).map(function(alb) {
+                    var src = alb.img64 || alb.img300 || '';
+                    var artHtml = src ? '<img class="artist-album-chip-art" src="' + escHtml(src) + '" alt="">' : '<div class="artist-album-chip-art" style="background:#e2e8f0;">\uD83D\uDCBF</div>';
+                    var yr = (alb.releaseDate || '').match(/^(\d{4})/);
+                    return '<div class="artist-album-chip" data-album="' + escHtml(alb.name) + '">' + artHtml + '<span class="artist-album-chip-name">' + escHtml(alb.name) + '</span><span class="artist-album-chip-count">' + (yr ? yr[1] : '') + '</span></div>';
+                }).join('');
+                var card = document.createElement('div');
+                card.className = 'artist-card'; card.setAttribute('data-artist', artist.name);
+                card.innerHTML = imgHtml + '<div class="artist-card-body"><div class="artist-card-name">' + escHtml(artist.name) + '</div><div class="artist-card-meta">' + artist.trackCount + ' track(s)</div><div class="section-header">Albums &amp; Singles</div><div class="artist-album-list">' + albumsHtml + '</div></div>';
+                card.querySelectorAll('.artist-album-chip').forEach(function(chip) { chip.onclick = function() { showPanel('album', { albumName: chip.getAttribute('data-album') }); }; });
+                grid.appendChild(card);
+            });
+        }
+
+        function buildCardHtml(t) {
+            var spc = (t.status || '').toLowerCase().replace(/ /g, '-');
+            var stepHtml = '';
+            for (var si = 0; si < 5; si++) { var cls = si < t.lifecycleStage ? 'stage-complete' : (si === t.lifecycleStage ? 'stage-current' : 'stage-pending'); stepHtml += '<span class="stage-segment ' + cls + '"></span>'; }
+            var AF = ['Canvas','Clip','Cover','Lyrics','Reel','mp3','wav','URL','AlbumReel','Stems','DAW','Mastered'];
+            var UM = { Canvas:{accept:'video/mp4',ext:'mp4'}, Clip:{accept:'audio/mpeg,.mp3',ext:'mp3'}, Cover:{accept:'image/png,image/jpeg',ext:'png'}, Lyrics:{accept:'.txt,text/plain',ext:'txt'}, Reel:{accept:'video/mp4',ext:'mp4'}, AlbumReel:{accept:'video/mp4',ext:'mp4'} };
+            var DL = { Canvas:'Cv', Clip:'Cl', Cover:'Co', Lyrics:'Ly', Reel:'Re', mp3:'M3', wav:'Wv', URL:'Ur', AlbumReel:'AR', Stems:'St', DAW:'DW', Mastered:'Ms' };
+            var ex = (t.existing || '').split(',').filter(Boolean);
+            var mr = '', gr = '<div class="graphic-matrix-row">';
+            AF.forEach(function(f) {
+                var has = ex.indexOf(f.toLowerCase()) >= 0;
+                var dl = DL[f] || f.slice(0,2);
+                var gh = t.githubAssets && t.githubAssets[f] ? ' <a href="' + escHtml(t.githubAssets[f]) + '" target="_blank" class="link-icon">GH &#x1F517;</a>' : '';
+                var nl = t.nasUrl ? ' <a href="' + escHtml(t.nasUrl) + '" target="_blank" class="link-icon">NAS &#x1F517;</a>' : '';
+                var bh, dh;
+                if (has) {
+                    bh = '<div class="meta-value-row"><span class="badge yes">YES</span><span class="link-icon-group">' + nl + gh + '</span></div>';
+                    dh = '<span class="graphic-dot dot-yes" title="' + f + ': Yes">' + dl + '</span>';
+                } else {
+                    var um = UM[f];
+                    if (um) {
+                        var oa = 'openUploadRowAction(' + JSON.stringify(t.id) + ',' + JSON.stringify(t.title) + ',' + JSON.stringify(f) + ',' + JSON.stringify(um.accept) + ',' + JSON.stringify(um.ext) + ')';
+                        bh = '<span class="badge no uploadable" onclick="' + oa + '" title="Tap to upload">No &#x1F4E4;</span>';
+                        dh = '<span class="graphic-dot dot-no uploadable" onclick="' + oa + '" title="' + f + ': Missing">' + dl + '</span>';
+                    } else { bh = '<span class="badge no">No</span>'; dh = '<span class="graphic-dot dot-no" title="' + f + ': Missing">' + dl + '</span>'; }
+                }
+                mr += '<div class="meta-row"><span class="label">' + f + ':</span>' + bh + '</div>';
+                gr += dh;
+            });
+            gr += '<button class="graphic-dot upload-trigger-dot" onclick="toggleUploadPicker(' + JSON.stringify(t.id) + ')" title="Upload">&#x1F4E4;</button></div>';
+            var sbh;
+            if (t.spotifyConfirmed && t.spotifyUrl) {
+                var tip = 'Album: ' + (t.spotifyAlbum||'') + ' | Released: ' + (t.spotifyReleaseDate||'') + ' | Artist: ' + (t.spotifyArtist||'');
+                sbh = '<a href="' + escHtml(t.spotifyUrl) + '" target="_blank" class="badge yes-link" title="' + escHtml(tip) + '">Live on Spotify &#x2713;</a>';
+                if (t.spotifyTitleMatchesDk === false && t.spotifyTrackName) sbh += ' <span class="badge neutral">&#x26A0; Title differs</span>';
+            } else if (t.isrc && t.isrc !== 'N/A') { sbh = '<span class="badge neutral">Not found on Spotify yet</span>'; }
+            else { sbh = '<span class="badge neutral">No ISRC</span>'; }
+            var gbp = window.USD_TO_GBP || MLP.usdToGbpRate || 1;
+            var ebd = t.earningsByCompany ? Object.keys(t.earningsByCompany).sort().map(function(k){ return k + ': &#xA3;' + ((t.earningsByCompany[k]||0)*gbp).toFixed(2); }).join(' | ') : '';
+            var ebh = '<span class="badge yes-link" title="' + escHtml(ebd || 'No earnings recorded yet') + '">&#xA3;' + ((t.earningsTotal||0)*gbp).toFixed(2) + '</span>';
+            var rvh = (t.earningsByCompany && Object.keys(t.earningsByCompany).length) ? Object.keys(t.earningsByCompany).sort().map(function(k){ return '<span class="badge yes">'+escHtml(k)+'</span>'; }).join(' ') : '<span class="badge neutral">No revenue streams yet</span>';
+            var ffh = (t.platforms && Object.keys(t.platforms).length) ? Object.keys(t.platforms).sort().map(function(k){ return '<a href="'+escHtml(String(t.platforms[k]))+'" target="_blank" class="badge yes-link">'+escHtml(k)+'</a>'; }).join(' ') : '<span class="badge neutral">No smart link platforms found</span>';
+            var vtt = t.verificationCount > 0 ? ('Verified '+t.verificationCount+' time'+(t.verificationCount!==1?'s':'')+' - last: '+escHtml(t.lastVerified||'')+'. Tap to verify again.') : 'Not yet verified';
+            var vcb = t.verificationCount > 0 ? '<span style="font-size:0.65rem;font-weight:800;vertical-align:super;">'+t.verificationCount+'</span>' : '';
+            var pp = (t.pubData && t.pubData.platform) ? t.pubData.platform : '';
+            var pd = (t.pubData && t.pubData.date) ? t.pubData.date : '';
+            var pl = (t.pubData && t.pubData.link) ? t.pubData.link : '';
+            var pbh = t.published ? '<span class="badge yes" title="'+escHtml(pp)+' | '+escHtml(pd)+'">Published &#x2713;</span>' : '<span class="badge neutral">Not published</span>';
+            var vbh = t.verificationCount > 0 ? '<span class="badge yes" title="Last: '+escHtml(t.lastVerified||'')+'">Verified x'+t.verificationCount+'</span>' : '<span class="badge neutral">Not verified</span>';
+            var elh = (t.errors === 'Yes' || t.errorText) ? '<div class="error-log-box" id="logbox-'+t.id+'"><strong>Active Error Log Context:</strong><br>'+escHtml(t.errorText||'')+'</div>' : '<div class="error-log-box" id="logbox-'+t.id+'" style="display:none;"></div>';
+            var alh = (t.isAlbum && t.albumGroup && t.albumGroup !== 'N/A') ? '<a href="#" class="album-link" data-album="'+escHtml(t.albumGroup)+'">'+escHtml(t.albumGroup)+'</a>' : '<span>'+escHtml(t.albumGroup||'N/A')+'</span>';
+            var ih = (t.isrc && t.isrc !== 'N/A') ? '<span class="badge yes">'+escHtml(t.isrc)+'</span>' : '<span class="badge neutral">N/A</span>';
+            var ea = t.earningsByCompany ? Object.keys(t.earningsByCompany).map(function(k){ return ' data-earnings-'+k.replace(/[^a-zA-Z0-9]/g,'').toLowerCase()+'="'+(t.earningsByCompany[k]||0)+'"'; }).join('') : '';
+            var h = '<div class="card" id="'+t.id+'" data-title="'+escHtml(t.title)+'" data-status="'+escHtml(t.status)+'" data-errors="'+escHtml(t.errors)+'" data-missing="'+escHtml(t.missing)+'" data-existing="'+escHtml(t.existing)+'" data-profile="'+escHtml(t.profile||'')+'" data-is-album="'+(t.isAlbum?'TRUE':'FALSE')+'" data-album-group="'+escHtml(t.albumGroup||'')+'" data-explicit="'+(t.explicit?'TRUE':'FALSE')+'" data-published="'+(t.published?'TRUE':'FALSE')+'" data-earnings-total="'+(t.earningsTotal||0)+'" data-isrc="'+escHtml(t.isrc||'')+'" data-spotify-artist="'+escHtml(t.spotifyArtist||'')+'" data-spotify-url="'+escHtml(t.spotifyUrl||'')+'" data-spotify-uri="'+escHtml(t.spotifyUri||'')+'" data-artist-filter="'+escHtml(t.spotifyArtist||'')+'"'+ea+'>';
+            h += '<div class="card-select-wrapper"><input type="checkbox" class="card-select-checkbox" id="select-'+t.id+'" data-song-name="'+escHtml(t.title)+'" onchange="onCardSelectionChanged(\''+t.id+'\')" /></div>';
+            h += '<div class="card-main-content"><img class="thumb-img" src="'+escHtml(t.thumbUrl||'data:image/png;base64,')+'" alt="Cover" /><div class="card-details"><div class="card-details-top-row"><h3>'+escHtml(t.title)+' <span class="status-pill '+spc+'">'+escHtml(t.status)+'</span></h3><div class="card-actions-wrapper"><button class="detail-btn" onclick="showPanel(\'detail\',{cardId:\''+t.id+'\'})">Detail</button><button class="action-icon-btn" onclick="dispatchVerificationMarkViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')" title="'+escHtml(vtt)+'">&#x1F44D;'+vcb+'</button><button class="action-icon-btn" onclick="toggleUploadPicker(\''+t.id+'\')" title="Upload a missing item">&#x1F4E4;</button><button class="action-icon-btn" onclick="togglePublicationForm(\''+t.id+'\')" title="Update publication">&#x1F310;</button><button class="action-icon-btn" onclick="toggleErrorSubmissionForm(\''+t.id+'\')">&#x26A0;&#xFE0F;</button><a href="'+escHtml(t.nasUrl||'')+'" class="action-icon-btn" target="_blank">&#x1F4C1;</a></div></div><div class="lifecycle-stepper" title="Stem Creation -> DAW Creation -> Asset Gathering -> Ready -> Released">'+stepHtml+'</div><div class="meta-grid"><div class="meta-row"><span class="label">Album:</span>'+alh+'</div><div class="meta-row"><span class="label">Profile:</span><span>'+escHtml(t.profile||'N/A')+'</span></div><div class="meta-row"><span class="label">ISRC:</span>'+ih+'</div>'+mr+elh+'<div class="meta-row"><span class="label">Published:</span>'+pbh+'</div><div class="meta-row"><span class="label">Verified:</span>'+vbh+'</div><div class="meta-row"><span class="label">Spotify:</span>'+sbh+'</div><div class="meta-row"><span class="label">Revenue Stream:</span>'+rvh+'</div><div class="meta-row"><span class="label">Earnings:</span>'+ebh+'</div><div class="meta-row"><span class="label">Platforms:</span>'+ffh+'</div></div>'+gr+'</div></div>';
+            h += '<div class="error-subform-panel" id="subform-'+t.id+'"><div class="subform-grid"><div class="subform-row"><label>Time:</label><input type="text" id="input-stamp-'+t.id+'" class="subform-input" placeholder="1:24 (MM:SS)" /></div><div class="subform-row"><label>Issue:</label><input type="text" id="input-issue-'+t.id+'" class="subform-input" /></div><div class="subform-row"><label>Fix:</label><input type="text" id="input-fix-'+t.id+'" class="subform-input" /></div><div class="subform-actions"><button class="subform-btn btn-add" onclick="stageLocalErrorEntry(\''+t.id+'\','+JSON.stringify(t.title)+')">Stage Note</button><button class="subform-btn btn-email" onclick="dispatchStagedErrorsViaDrive(\''+t.id+'\','+JSON.stringify(t.title)+')">Send via Drive</button></div><div class="staged-errors-ledger" id="ledger-'+t.id+'"></div></div></div>';
+            h += '<div class="publication-subform-panel" id="pubform-'+t.id+'"><div class="subform-grid"><div class="subform-row"><label>Platform:</label><input type="text" id="pub-platform-'+t.id+'" class="subform-input" placeholder="Spotify, YouTube, etc." value="'+escHtml(pp)+'" /></div><div class="subform-row"><label>Date:</label><input type="text" id="pub-date-'+t.id+'" class="subform-input" placeholder="YYYY-MM-DD" value="'+escHtml(pd)+'" /></div><div class="subform-row"><label>Link:</label><input type="text" id="pub-link-'+t.id+'" class="subform-input" placeholder="https://..." value="'+escHtml(pl)+'" /></div><div class="subform-actions"><button class="subform-btn btn-email" onclick="dispatchPublicationUpdateViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')">Send Update</button></div></div></div></div>';
+            return h;
+        }
+
+
         // ── PANEL NAVIGATION ──
         // panelHistory tracks context so the browser back button works
         var currentPanel = 'artist';
@@ -588,6 +709,20 @@
         }
 
         function evaluateControlMatrix() {
+            // Render cards from data if cardsContainer is empty (first load or refresh)
+            var cC = document.getElementById('cardsContainer');
+            if (cC && MLP.tracks.length && cC.children.length === 0) {
+                var frag = document.createDocumentFragment();
+                MLP.tracks.forEach(function(t) {
+                    var div = document.createElement('div');
+                    div.innerHTML = buildCardHtml(t);
+                    var card = div.firstChild;
+                    // Wire album links
+                    card.querySelectorAll('.album-link').forEach(function(a) { a.onclick = function(e) { e.preventDefault(); showPanel('album', { albumName: a.getAttribute('data-album') }); }; });
+                    frag.appendChild(card);
+                });
+                cC.appendChild(frag);
+            }
             var q    = document.getElementById('searchInput').value.toLowerCase().trim();
             var prof = document.getElementById('profileSelect').value;
             var ctx  = document.getElementById('albumContextSelect').value;
