@@ -687,29 +687,34 @@
             document.getElementById('batchFeedbackPanel').style.display = 'block';
         }
         function closeBatchFeedbackForm() { document.getElementById('batchFeedbackPanel').style.display = 'none'; }
-        function dispatchBatchFeedbackViaEmail() {
-            var inputs = document.querySelectorAll('.batch-issue-input');
+        async function dispatchBatchFeedbackViaEmail() {
+            var cards = document.querySelectorAll('.card');
             var sections = [];
-            for (var i = 0; i < inputs.length; i++) {
-                var issue = inputs[i].value.trim();
-                if (issue) sections.push('== ' + inputs[i].getAttribute('data-track-name') + ' ==\nIssue: ' + issue);
-            }
-            if (sections.length === 0) { alert('Enter at least one issue before sending.'); return; }
-            var body = '[ERROR REPORT BATCH]\n\n' + sections.join('\n\n') + '\n\nPlease append these to each track\'s Production\\errors.txt.';
-            if (body.length > BATCH_EMAIL_BODY_CHAR_LIMIT) {
-                var blob = new Blob([body], { type: 'text/plain' });
-                var url = URL.createObjectURL(blob);
-                var a = document.createElement('a'); a.href = url; a.download = 'batch_error_report.txt';
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                alert('Batch report saved as a text file. Please email it to phelzier1@gmail.com with subject "[ERROR REPORT BATCH]".');
-            } else {
-                window.location.href = 'mailto:phelzier1@gmail.com?subject=' + encodeURIComponent('[MLP] [ERROR REPORT BATCH] ' + sections.length + ' tracks') + '&body=' + encodeURIComponent(body);
-            }
-            closeBatchFeedbackForm(); clearAllSelections();
+            cards.forEach(function(c) {
+                var ledger = c.querySelector('.staged-errors-ledger');
+                if (!ledger || !ledger.children.length) return;
+                var title = c.getAttribute('data-title') || c.id;
+                var entries = [];
+                ledger.querySelectorAll('.ledger-entry').forEach(function(e) {
+                    var t = e.getAttribute('data-time') || '';
+                    var issue = e.getAttribute('data-issue') || '';
+                    var fix = e.getAttribute('data-fix') || '';
+                    if (t && issue) entries.push({ time: t, error: issue, fix: fix });
+                });
+                if (entries.length) sections.push({ songName: title, entries: entries });
+            });
+            if (!sections.length) { alert('No staged error notes to send.'); return; }
+            var ts = new Date().toISOString();
+            var reportId = Date.now() + '-' + Math.random().toString(36).slice(2,7);
+            var payload = { songName: 'BATCH', sections: sections, submittedBy: _spotifyUserEmail || 'unknown', submittedAt: ts };
+            try {
+                var resp = await fetch(WORKER_URL + '/github/push', { method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ path: 'error-reports/batch-' + reportId + '.json', content: toBase64(JSON.stringify(payload, null, 2)), message: 'Batch error report' }) });
+                var res = await resp.json();
+                if (res && res.success !== false) { alert('Sent! Will be processed on next run.'); closeBatchFeedbackForm(); }
+                else { alert('Failed to send. Please try again.'); }
+            } catch(e) { alert('Error: ' + e); }
         }
-
-        // ── STATUS / FILTER ──
         function applyStatusFilter(s) {
             var cards = document.getElementsByClassName('summary-card');
             for (var i = 0; i < cards.length; i++) cards[i].classList.remove('active-filter');
@@ -1202,25 +1207,52 @@
             input.click();
         }
         function switchLyricsToFileUpload() { if (!currentLyricsTrackContext) return; var c = currentLyricsTrackContext; triggerAssetUpload(c.id, c.songName, 'Lyrics', c.acceptAttr, c.expectedExt); }
-        function dispatchLyricsTextViaEmail() {
+        async function dispatchLyricsTextViaEmail() {
             if (!currentLyricsTrackContext) return;
             var text = document.getElementById('lyricsTextarea').value.trim();
             if (!text) { alert('Type or paste the lyrics first, or tap "Upload a .txt file instead".'); return; }
             var name = currentLyricsTrackContext.songName;
-            window.location.href = 'mailto:phelzier1@gmail.com?subject=' + encodeURIComponent('[MLP] [ASSET UPLOAD TEXT] ' + name + ' - Lyrics') + '&body=' + encodeURIComponent('Lyrics for "' + name + '":\n\n' + text + '\n\nPlease save this as the lyrics for this track.');
-            closeUploadModal();
+            var safeName = name.replace(/ /g,'_');
+            var filename = safeName + '-lyrics.txt';
+            var path = 'uploads/' + safeName + '__Lyrics__' + filename;
+            try {
+                var b64 = toBase64(text);
+                var resp = await fetch(WORKER_URL + '/github/push', { method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ path: path, content: b64, message: 'Lyrics upload: ' + name }) });
+                var res = await resp.json();
+                if (res && res.success !== false) { alert('Lyrics uploaded! Will be saved on next run.'); closeUploadModal(); }
+                else { alert('Upload failed. Please try again.'); }
+            } catch(e) { alert('Error: ' + e); }
         }
-        function dispatchPublicationUpdateViaEmail(id, name) {
+        async function dispatchPublicationUpdateViaEmail(id, name) {
             var platform = document.getElementById('pub-platform-' + id).value.trim();
             var date     = document.getElementById('pub-date-' + id).value.trim();
             var link     = document.getElementById('pub-link-' + id).value.trim();
             if (!platform) { alert('Enter at least a platform name.'); return; }
-            window.location.href = 'mailto:phelzier1@gmail.com?subject=' + encodeURIComponent('[MLP] [PUBLICATION UPDATE] ' + name) + '&body=' + encodeURIComponent('Publication update for "' + name + '":\n\nPlatform: ' + platform + (date ? '\nDate: ' + date : '') + (link ? '\nLink: ' + link : '') + '\n\nPlease update this track\'s publication status.');
-            togglePublicationForm(id);
-        }
-        function dispatchVerificationMarkViaEmail(id, name) {
             var ts = new Date().toISOString();
-            window.location.href = 'mailto:phelzier1@gmail.com?subject=' + encodeURIComponent('[MLP] [VERIFY] ' + name) + '&body=' + encodeURIComponent('Verification mark for "' + name + '":\n\nTimestamp: ' + ts + '\n\nPlease record this as a verification for this track.');
+            var safeName = name.replace(/ /g,'_');
+            var payload = { type: 'publication', songName: name, platform: platform, pubDate: date, link: link, submittedBy: _spotifyUserEmail || 'unknown', submittedAt: ts };
+            var path = 'imports/publication__' + ts.slice(0,10) + '__' + safeName + '.json';
+            try {
+                var resp = await fetch(WORKER_URL + '/github/push', { method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ path: path, content: toBase64(JSON.stringify(payload, null, 2)), message: 'Publication: ' + name }) });
+                var res = await resp.json();
+                if (res && res.success !== false) { alert('Saved! Publication status will update on next run.'); togglePublicationForm(id); }
+                else { alert('Failed to save publication update. Please try again.'); }
+            } catch(e) { alert('Error: ' + e); }
+        }
+        async function dispatchVerificationMarkViaEmail(id, name) {
+            var ts = new Date().toISOString();
+            var safeName = name.replace(/ /g,'_');
+            var payload = { type: 'verify', songName: name, timestamp: ts, submittedBy: _spotifyUserEmail || 'unknown' };
+            var path = 'imports/verify__' + ts.slice(0,10) + '__' + safeName + '.json';
+            try {
+                var resp = await fetch(WORKER_URL + '/github/push', { method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ path: path, content: toBase64(JSON.stringify(payload, null, 2)), message: 'Verify: ' + name }) });
+                var res = await resp.json();
+                if (res && res.success !== false) { alert('Verified! Will be recorded on next run.'); }
+                else { alert('Failed to record verification. Please try again.'); }
+            } catch(e) { alert('Error: ' + e); }
         }
         var stagedErrorEntries = {}; // id -> [{time, error, fix}]
         var TIME_MMSS_PATTERN = /^\d{1,2}:\d{2}$/;
