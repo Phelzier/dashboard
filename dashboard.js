@@ -162,7 +162,7 @@
                 else if (name === 'detail' && ctx) renderDetailPanel(ctx);
                 else if (name === 'songs') evaluateControlMatrix();
                 else if (name === 'spotify') loadSpotifyPanel();
-                else if (name === 'admin') { /* static panel, no render needed */ }
+                else if (name === 'admin') { refreshDiagnostics(); }
             } catch(e) {
                 console.error('Panel render error (' + name + '):', e);
             }
@@ -1119,12 +1119,8 @@
         }
         function closeAdminPanel() { showPanel('artist'); } // legacy — redirect to artist tab
 
-        function closeDiagnosticsPanel() { document.getElementById('diagnosticsModalBackdrop').classList.remove('active'); }
-
-        async function openDiagnosticsPanel() {
-            document.getElementById('diagnosticsModalBackdrop').classList.add('active');
-            await refreshDiagnostics();
-        }
+        function closeDiagnosticsPanel() { }
+        async function openDiagnosticsPanel() { showPanel('admin'); }
 
         async function refreshDiagnostics() {
             var el = document.getElementById('diagnosticsContent');
@@ -1235,7 +1231,6 @@
             input.type = 'file'; input.accept = '.csv,.zip,.png,.jpg,.jpeg,.mp4,.mp3,.txt'; input.multiple = true;
             input.onchange = function() {
                 if (!input.files || !input.files.length) return;
-                closeAdminPanel();
                 uploadFilesToGitHub(Array.from(input.files), importType);
             };
             input.click();
