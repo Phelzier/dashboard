@@ -2034,8 +2034,20 @@
             try { return await resp.json(); } catch(e) { return {}; }
         }
 
-        // Called by Spotify SDK when ready
+        // Called by Spotify SDK when the script itself finishes loading (fires exactly once,
+        // automatically, regardless of whether we have a token yet).
         window.onSpotifyWebPlaybackSDKReady = function() {
+            _spotifyCreatePlayerAndConnect();
+        };
+
+        // Actually creates and connects the SDK player. Callable both from the auto-fired
+        // onSpotifyWebPlaybackSDKReady callback above, AND from spotifyInit() below — because
+        // the SDK script can finish loading (and fire its one-time ready callback) BEFORE our
+        // async token refresh completes. If that happens, the callback bails out early since
+        // there's no token yet, and without this second call path the player would never get
+        // created and _spotifyMode would stay null forever with no fallback.
+        function _spotifyCreatePlayerAndConnect() {
+            if (_spotifyPlayer) return; // already created, don't double-init
             var clientId = spotifyGetClientId();
             if (!clientId || !_spotifyAccessToken) return;
             _spotifyPlayer = new Spotify.Player({
@@ -2067,9 +2079,10 @@
             _spotifyPlayer.connect().then(function(ok) {
                 if (!ok) spotifyFallbackToApi();
             });
-        };
+        }
 
         function spotifyFallbackToApi() {
+            if (_spotifyMode) return; // already resolved (sdk or api) — don't clobber
             _spotifyMode = 'api';
             showPlayerDock();
             startSpotifyPoll();
@@ -2228,12 +2241,18 @@
         })();
 
         function spotifyInit() {
-            // Try SDK first; if onSpotifyWebPlaybackSDKReady fires and connects, we use SDK mode.
-            // If SDK fails, spotifyFallbackToApi() is called automatically.
-            // For API-only mode (fallback), start polling immediately.
             if (typeof Spotify === 'undefined') {
-                // SDK script not loaded yet — poll loaded event or just use API
-                spotifyFallbackToApi();
+                // SDK script hasn't finished loading yet. It will call
+                // window.onSpotifyWebPlaybackSDKReady automatically once it does — but if it
+                // never loads (blocked, network issue, ad-blocker, etc.) that never fires, so
+                // fall back to API mode after a timeout rather than staying stuck forever.
+                setTimeout(function() {
+                    if (!_spotifyMode) spotifyFallbackToApi();
+                }, 4000);
+            } else {
+                // SDK script already finished loading — meaning its one-time ready callback
+                // already fired and fired too early (before we had a token), so it bailed out
+                // and no player was ever created. Create it now that we actually have a token.
+                _spotifyCreatePlayerAndConnect();
             }
-            // SDK path handled by onSpotifyWebPlaybackSDKReady
         }
