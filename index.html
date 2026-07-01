@@ -25,10 +25,7 @@
             <button class="nav-tab" id="tab-album" onclick="showPanel('album',{albumName:''})"><span class="tab-icon">💿</span>Albums</button>
             <button class="nav-tab" id="tab-songs" onclick="showPanel('songs')"><span class="tab-icon">🎵</span>Songs</button>
             <button class="nav-tab" id="tab-spotify" onclick="showPanel('spotify')" style="display:none;"><span class="tab-icon">&#x25CF;</span>Spotify</button>
-        </div>
-        <div class="nav-actions">
-            <button class="nav-icon-btn" onclick="toggleAdminPanel()" title="Admin">⚙️</button>
-            <button class="nav-icon-btn" id="spotifyConnectBtn" onclick="spotifyAuth()" title="Connect Spotify" style="font-size:0.7rem;font-weight:700;padding:4px 8px;background:#1DB954;color:#fff;border:none;border-radius:6px;cursor:pointer;">♫ Connect</button>
+            <button class="nav-tab" id="tab-admin" onclick="showPanel('admin')"><span class="tab-icon">⚙️</span>Admin</button>
         </div>
     </nav>
 
@@ -36,7 +33,7 @@
     <div class="panel active" id="panel-artist">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
             <h2 style="margin:0;font-size:1.1rem;font-weight:800;color:var(--accent);">Artists</h2>
-            <span style="font-size:0.7rem;color:var(--text-muted);font-weight:500;">Updated 2026-07-01T18:20:04</span>
+            <span onclick="openDiagnosticsPanel()" style="font-size:0.7rem;color:var(--text-muted);font-weight:500;cursor:pointer;user-select:none;" title="Open diagnostics">Updated 2026-07-01T18:35:32 &nbsp;·&nbsp; v0.0.1</span>
         </div>
         <div class='artist-grid'><div class='artist-card' data-artist='2 The MaXXX'><div class='artist-card-hero' style='display:flex;align-items:center;justify-content:center;font-size:4rem;background:#e2e8f0;'>🎤</div><div class='artist-card-body'><div class='artist-card-name'>2 The MaXXX</div><div class='artist-card-meta'>0 track(s) in library</div><div class='section-header'>Albums &amp; Singles</div><div class='artist-album-list'></div></div></div><div class='artist-card' data-artist='4 The MaXXX'><div class='artist-card-hero' style='display:flex;align-items:center;justify-content:center;font-size:4rem;background:#e2e8f0;'>🎤</div><div class='artist-card-body'><div class='artist-card-name'>4 The MaXXX</div><div class='artist-card-meta'>0 track(s) in library</div><div class='section-header'>Albums &amp; Singles</div><div class='artist-album-list'></div></div></div></div>
     </div>
@@ -6557,6 +6554,17 @@ Yeah, we’ve already won!</div>
         <div id="detail-content"></div>
     </div>
 
+    <div class="panel" id="panel-admin">
+        <h2 style="margin:0 0 16px;font-size:1.1rem;font-weight:800;color:var(--accent);">Admin</h2>
+        <div style="display:flex;flex-direction:column;gap:12px;max-width:420px;">
+            <div class="upload-modal-row" style="background:var(--bg-card);border-radius:8px;padding:12px;">
+                <span class="upload-modal-row-label">📂 Upload Data</span>
+                <button class="upload-modal-row-btn" onclick="triggerAdminImport(null)">Upload</button>
+            </div>
+            <div class="upload-modal-subtitle" style="margin:-4px 0 0 2px;">Select one or more files — type is detected automatically from the filename.</div>
+        </div>
+    </div>
+
     <div class="floating-batch-bar" id="floatingBatchBar">
         <span class="batch-bar-count" id="batchBarCount">0 selected</span>
         <div class="batch-bar-actions">
@@ -6586,21 +6594,6 @@ Yeah, we’ve already won!</div>
                 </div>
             </div>
             <div class="upload-modal-close-row"><button id="uploadOkBtn" class="upload-modal-close-btn" onclick="submitStagedUploads()">Upload All</button></div>
-        </div>
-    </div>
-    <div class="upload-modal-backdrop" id="adminModalBackdrop" onclick="if(event.target===this) closeAdminPanel()">
-        <div class="upload-modal-card">
-            <div class="upload-modal-title">Admin</div>
-            <div class="upload-modal-row">
-                <span class="upload-modal-row-label">📂 Upload Data</span>
-                <button class="upload-modal-row-btn" onclick="triggerAdminImport(null)">Upload</button>
-            </div>
-            <div class="upload-modal-subtitle" style="margin-top:-4px;">Select one or more files — type is detected automatically from the filename.</div>
-            <div class="upload-modal-row" style="margin-top:8px;">
-                <span class="upload-modal-row-label">🔬 Diagnostics</span>
-                <button class="upload-modal-row-btn" onclick="closeAdminPanel();openDiagnosticsPanel()">Run</button>
-            </div>
-            <div class="upload-modal-close-row"><button class="upload-modal-close-btn" onclick="closeAdminPanel()">OK</button></div>
         </div>
     </div>
     <!-- DIAGNOSTICS MODAL -->
