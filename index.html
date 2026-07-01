@@ -36,7 +36,7 @@
     <div class="panel active" id="panel-artist">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
             <h2 style="margin:0;font-size:1.1rem;font-weight:800;color:var(--accent);">Artists</h2>
-            <span style="font-size:0.7rem;color:var(--text-muted);font-weight:500;">Updated 2026-07-01T17:44:21</span>
+            <span style="font-size:0.7rem;color:var(--text-muted);font-weight:500;">Updated 2026-07-01T17:57:48</span>
         </div>
         <div class='artist-grid'><div class='artist-card' data-artist='2 The MaXXX'><div class='artist-card-hero' style='display:flex;align-items:center;justify-content:center;font-size:4rem;background:#e2e8f0;'>🎤</div><div class='artist-card-body'><div class='artist-card-name'>2 The MaXXX</div><div class='artist-card-meta'>0 track(s) in library</div><div class='section-header'>Albums &amp; Singles</div><div class='artist-album-list'></div></div></div><div class='artist-card' data-artist='4 The MaXXX'><div class='artist-card-hero' style='display:flex;align-items:center;justify-content:center;font-size:4rem;background:#e2e8f0;'>🎤</div><div class='artist-card-body'><div class='artist-card-name'>4 The MaXXX</div><div class='artist-card-meta'>0 track(s) in library</div><div class='section-header'>Albums &amp; Singles</div><div class='artist-album-list'></div></div></div></div>
     </div>
@@ -6572,10 +6572,12 @@ Yeah, we’ve already won!</div>
         </div>
     </div>
     <div class="upload-modal-backdrop" id="uploadModalBackdrop" onclick="if(event.target===this) closeUploadModal()">
-        <div class="upload-modal-card">
+        <div class="upload-modal-card" style="max-width:520px;width:100%;max-height:85vh;display:flex;flex-direction:column;">
             <div class="upload-modal-title" id="uploadModalTitle">Missing items</div>
-            <div class="upload-modal-subtitle">Tap an item to upload it from your phone.</div>
-            <div id="uploadModalRows"></div>
+            <div class="upload-modal-subtitle">Tap an item to choose file(s). Add as many as you like, then press Upload All.</div>
+            <div id="uploadModalRows" style="flex-shrink:0;"></div>
+            <div id="uploadStagedList" style="overflow-y:auto;max-height:260px;flex-shrink:1;"></div>
+            <div id="uploadProgressMsg" style="display:none;font-size:0.82rem;font-weight:600;padding:8px 0;text-align:center;"></div>
             <div class="lyrics-entry-panel" id="lyricsEntryPanel">
                 <textarea class="lyrics-textarea" id="lyricsTextarea" placeholder="Type or paste the lyrics here..."></textarea>
                 <div class="lyrics-entry-actions">
@@ -6583,7 +6585,7 @@ Yeah, we’ve already won!</div>
                     <button class="lyrics-send-btn" onclick="dispatchLyricsTextViaEmail()">Send</button>
                 </div>
             </div>
-            <div class="upload-modal-close-row"><button class="upload-modal-close-btn" onclick="closeUploadModal()">OK</button></div>
+            <div class="upload-modal-close-row"><button id="uploadOkBtn" class="upload-modal-close-btn" onclick="submitStagedUploads()">Upload All</button></div>
         </div>
     </div>
     <div class="upload-modal-backdrop" id="adminModalBackdrop" onclick="if(event.target===this) closeAdminPanel()">
