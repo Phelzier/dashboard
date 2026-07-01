@@ -130,7 +130,7 @@
             var ea = t.earningsByCompany ? Object.keys(t.earningsByCompany).map(function(k){ return ' data-earnings-'+k.replace(/[^a-zA-Z0-9]/g,'').toLowerCase()+'="'+(t.earningsByCompany[k]||0)+'"'; }).join('') : '';
             var h = '<div class="card" id="'+t.id+'" data-title="'+escHtml(t.title)+'" data-status="'+escHtml(t.status)+'" data-errors="'+escHtml(t.errors)+'" data-missing="'+escHtml(t.missing)+'" data-existing="'+escHtml(t.existing)+'" data-profile="'+escHtml(t.profile||'')+'" data-is-album="'+(t.isAlbum?'TRUE':'FALSE')+'" data-album-group="'+escHtml(t.albumGroup||'')+'" data-explicit="'+(t.explicit?'TRUE':'FALSE')+'" data-published="'+(t.published?'TRUE':'FALSE')+'" data-earnings-total="'+(t.earningsTotal||0)+'" data-isrc="'+escHtml(t.isrc||'')+'" data-spotify-artist="'+escHtml(t.spotifyArtist||'')+'" data-spotify-url="'+escHtml(t.spotifyUrl||'')+'" data-spotify-uri="'+escHtml(t.spotifyUri||'')+'" data-artist-filter="'+escHtml(t.spotifyArtist||'')+'" data-release-date="'+escHtml(t.spotifyReleaseDate||'')+'"'+ea+'>';
             h += '<div class="card-select-wrapper"><input type="checkbox" class="card-select-checkbox" id="select-'+t.id+'" data-song-name="'+escHtml(t.title)+'" onchange="onCardSelectionChanged(\''+t.id+'\')" /></div>';
-            h += '<div class="card-main-content"><img class="thumb-img" src="'+escHtml(t.thumbUrl||'data:image/png;base64,')+'" alt="Cover" /><div class="card-details"><div class="card-details-top-row"><h3>'+escHtml(t.title)+' <span class="status-pill '+spc+'">'+escHtml(t.status)+'</span></h3><div class="card-actions-wrapper"><button class="detail-btn" onclick="showPanel(\'detail\',{cardId:\''+t.id+'\'})">Detail</button><span id=\"conf-badge-'+t.id+'\" style=\"display:none;font-size:0.7rem;color:#1DB954;font-weight:700;margin-left:4px;\"></span>'+(t.spotifyUri&&_spotifyAccessToken?'<button class="action-icon-btn" onclick="playerPlayUriInContext(\''+t.spotifyUri+'\')" title="Play in order">&#x25B6;</button>':'')+'<button class="action-icon-btn" onclick="dispatchVerificationMarkViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')" title="'+escHtml(vtt)+'">&#x1F44D;'+vcb+'</button><button class="action-icon-btn" onclick="toggleUploadPicker(\''+t.id+'\')" title="Upload a missing item">&#x1F4E4;</button><button class="action-icon-btn" onclick="togglePublicationForm(\''+t.id+'\')" title="Update publication">&#x1F310;</button><button class="action-icon-btn" onclick="toggleErrorSubmissionForm(\''+t.id+'\')">&#x26A0;&#xFE0F;</button><a href="'+escHtml(t.nasUrl||'')+'" class="action-icon-btn" target="_blank">&#x1F4C1;</a></div></div><div class="lifecycle-stepper" title="Stem Creation -> DAW Creation -> Asset Gathering -> Ready -> Released">'+stepHtml+'</div><div class="meta-grid"><div class="meta-row"><span class="label">Album:</span>'+alh+'</div><div class="meta-row"><span class="label">Profile:</span><span>'+escHtml(t.profile||'N/A')+'</span></div><div class="meta-row"><span class="label">ISRC:</span>'+ih+'</div>'+mr+elh+'<div class="meta-row"><span class="label">Published:</span>'+pbh+'</div><div class="meta-row"><span class="label">Verified:</span>'+vbh+'</div><div class="meta-row"><span class="label">Spotify:</span>'+sbh+'</div><div class="meta-row"><span class="label">Revenue Stream:</span>'+rvh+'</div><div class="meta-row"><span class="label">Earnings:</span>'+ebh+'</div><div class="meta-row"><span class="label">Platforms:</span>'+ffh+'<div class="meta-row"><span class="label">Confidence:</span><span style="font-size:0.85rem;color:#1DB954;font-weight:600;">'+(_confidenceScores[t.id]?'\uD83D\uDC4D '+_confidenceScores[t.id]+' thumbs up':'Not yet rated')+'</span></div></div>'+gr+'</div></div>';
+            h += '<div class="card-main-content"><img class="thumb-img" src="'+escHtml(t.thumbUrl||'data:image/png;base64,')+'" alt="Cover" /><div class="card-details"><div class="card-details-top-row"><h3>'+escHtml(t.title)+' <span class="status-pill '+spc+'">'+escHtml(t.status)+'</span></h3><div class="card-actions-wrapper"><button class="detail-btn" onclick="showPanel(\'detail\',{cardId:\''+t.id+'\'})">Detail</button><span id=\"conf-badge-'+t.id+'\" style=\"display:none;font-size:0.7rem;color:#1DB954;font-weight:700;margin-left:4px;\"></span>'+(t.spotifyUri&&_spotifyAccessToken?'<button class="action-icon-btn" onclick="playerPlayUriInContext(\''+t.spotifyUri+'\')" title="Play in order">&#x25B6;</button>':'')+'<button class="action-icon-btn" onclick="dispatchVerificationMarkViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')" title="'+escHtml(vtt)+'">&#x1F44D;'+vcb+'</button><button class="action-icon-btn" onclick="toggleUploadPicker(\''+t.id+'\')" title="Upload a missing item">&#x1F4E4;</button><button class="action-icon-btn" onclick="togglePublicationForm(\''+t.id+'\')" title="Update publication">&#x1F310;</button><button class="action-icon-btn" onclick="toggleErrorSubmissionForm(\''+t.id+'\')">&#x26A0;&#xFE0F;</button><button class="action-icon-btn" onclick="openTrackDetailPopup(\\\''+t.id+'\\\')" title="More detail">&#x1F50D;</button><a href="'+escHtml(t.nasUrl||'')+'" class="action-icon-btn" target="_blank">&#x1F4C1;</a></div></div><div class="lifecycle-stepper" title="Stem Creation -> DAW Creation -> Asset Gathering -> Ready -> Released">'+stepHtml+'</div><div class="meta-grid"><div class="meta-row"><span class="label">Album:</span>'+alh+'</div><div class="meta-row"><span class="label">Profile:</span><span>'+escHtml(t.profile||'N/A')+'</span></div><div class="meta-row"><span class="label">ISRC:</span>'+ih+'</div>'+mr+elh+'<div class="meta-row"><span class="label">Published:</span>'+pbh+'</div><div class="meta-row"><span class="label">Verified:</span>'+vbh+'</div><div class="meta-row"><span class="label">Spotify:</span>'+sbh+'</div><div class="meta-row"><span class="label">Revenue Stream:</span>'+rvh+'</div><div class="meta-row"><span class="label">Earnings:</span>'+ebh+'</div><div class="meta-row"><span class="label">Platforms:</span>'+ffh+'<div class="meta-row"><span class="label">Confidence:</span><span style="font-size:0.85rem;color:#1DB954;font-weight:600;">'+(_confidenceScores[t.id]?'\uD83D\uDC4D '+_confidenceScores[t.id]+' thumbs up':'Not yet rated')+'</span></div></div>'+gr+'</div></div>';
             h += '<div class="error-subform-panel" id="subform-'+t.id+'"><div class="subform-grid"><div class="subform-row"><label>Time:</label><input type="text" id="input-stamp-'+t.id+'" class="subform-input" placeholder="1:24 (MM:SS)" /></div><div class="subform-row"><label>Issue:</label><input type="text" id="input-issue-'+t.id+'" class="subform-input" /></div><div class="subform-row"><label>Fix:</label><input type="text" id="input-fix-'+t.id+'" class="subform-input" /></div><div class="subform-actions"><button class="subform-btn btn-add" onclick="stageLocalErrorEntry(\''+t.id+'\','+JSON.stringify(t.title)+')">Stage Note</button><button class="subform-btn btn-email" onclick="dispatchStagedErrorsViaDrive(\''+t.id+'\','+JSON.stringify(t.title)+')">Send via Drive</button></div><div class="staged-errors-ledger" id="ledger-'+t.id+'"></div></div></div>';
             h += '<div class="publication-subform-panel" id="pubform-'+t.id+'"><div class="subform-grid"><div class="subform-row"><label>Platform:</label><input type="text" id="pub-platform-'+t.id+'" class="subform-input" placeholder="Spotify, YouTube, etc." value="'+escHtml(pp)+'" /></div><div class="subform-row"><label>Date:</label><input type="text" id="pub-date-'+t.id+'" class="subform-input" placeholder="YYYY-MM-DD" value="'+escHtml(pd)+'" /></div><div class="subform-row"><label>Link:</label><input type="text" id="pub-link-'+t.id+'" class="subform-input" placeholder="https://..." value="'+escHtml(pl)+'" /></div><div class="subform-actions"><button class="subform-btn btn-email" onclick="dispatchPublicationUpdateViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')">Send Update</button></div></div></div></div>';
             return h;
@@ -198,6 +198,37 @@
                     activeArtistFilter = artistName;
                     showPanel('songs');
                 };
+            });
+            // ── Artist analytics summary (Point 8) ──
+            var convRate = (MLP && MLP.usdToGbpRate) || (1 / 1.3418);
+            document.querySelectorAll('.artist-card[data-artist]').forEach(function(card) {
+                var artistName = (card.getAttribute('data-artist') || '').toLowerCase();
+                var totalEarnings = 0, compMap = {}, totalStreams = 0;
+                if (MLP && Array.isArray(MLP.tracks)) {
+                    MLP.tracks.forEach(function(t) {
+                        if ((t.spotifyArtist || '').toLowerCase() !== artistName) return;
+                        totalEarnings += (t.earningsTotal || 0);
+                        if (t.earningsByCompany) {
+                            Object.keys(t.earningsByCompany).forEach(function(k) {
+                                compMap[k] = (compMap[k] || 0) + t.earningsByCompany[k];
+                            });
+                        }
+                    });
+                }
+                var gbpStr = (totalEarnings * convRate).toFixed(2);
+                var breakdown = Object.keys(compMap).map(function(k) {
+                    return k + ': £' + (compMap[k] * convRate).toFixed(2);
+                }).join(' | ') || 'No distribution data.';
+                var existing = card.querySelector('.artist-analytics-summary');
+                if (existing) existing.remove();
+                var body = card.querySelector('.artist-card-body');
+                if (!body) return;
+                var summary = document.createElement('div');
+                summary.className = 'artist-analytics-summary';
+                summary.style.cssText = 'background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:10px;font-size:0.8rem;';
+                summary.innerHTML = '<div><strong>Catalog Yield:</strong> £' + gbpStr + '</div>' +
+                    '<div style="font-size:0.72rem;color:var(--text-muted);">' + breakdown + '</div>';
+                body.insertAdjacentElement('afterbegin', summary);
             });
         }
 
@@ -334,7 +365,39 @@
 
             heroHtml += '</div></div>';
             var container = panel.querySelector('#album-hero-container');
-            if (container) container.innerHTML = heroHtml;
+            if (container) {
+                container.innerHTML = heroHtml;
+                // ── Analytics banner (Point 7) ──
+                var aggEarnings = 0, compMap = {}, completedCount = 0;
+                albumCards.forEach(function(c) {
+                    var t = _trackMap[c.id];
+                    if (!t) return;
+                    aggEarnings += (t.earningsTotal || 0);
+                    if (t.earningsByCompany) {
+                        Object.keys(t.earningsByCompany).forEach(function(k) {
+                            compMap[k] = (compMap[k] || 0) + t.earningsByCompany[k];
+                        });
+                    }
+                    if (t.status && (t.status.toLowerCase() === 'ready' || t.status.toLowerCase() === 'released')) completedCount++;
+                });
+                var convRate = (MLP && MLP.usdToGbpRate) || (1 / 1.3418);
+                var gbpStr = (aggEarnings * convRate).toFixed(2);
+                var completeness = albumCards.length > 0 ? Math.round((completedCount / albumCards.length) * 100) : 0;
+                var compBreakdown = Object.keys(compMap).map(function(k) {
+                    return k + ': £' + (compMap[k] * convRate).toFixed(2);
+                }).join(' | ') || 'No distribution data.';
+                var banner = '<div class="album-analytics-banner" style="background:var(--bg-card);border:1px solid var(--border);padding:12px;border-radius:8px;margin-bottom:14px;font-size:0.85rem;">' +
+                    '<strong>Album Yield:</strong> <span style="color:#1DB954;font-weight:700;">£' + gbpStr + '</span>' +
+                    '<div style="color:var(--text-muted);font-size:0.75rem;margin-top:4px;">' + compBreakdown + '</div>' +
+                    '<hr style="border:none;border-top:1px solid var(--border);margin:8px 0;">' +
+                    '<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;">' +
+                    '<span><strong>UPC:</strong> ' + escHtml(heroUPC || 'N/A') + '</span>' +
+                    '<span><strong>Completeness:</strong> ' + completeness + '%</span>' +
+                    '</div></div>';
+                var existing = container.querySelector('.album-analytics-banner');
+                if (existing) existing.remove();
+                container.insertAdjacentHTML('afterbegin', banner);
+            }
         }
 
         // ── DETAIL PANEL ──
@@ -663,6 +726,8 @@
             document.getElementById('albumContextSelect').value = 'ALL';
             document.getElementById('sortBySelect').value = 'none';
             activeSortKey = 'none'; activeStatusFilter = 'ALL'; activeArtistFilter = ''; activeSortDir = 'desc'; var sdb = document.getElementById('sortDirBtn'); if (sdb) sdb.textContent = 'Z-A';
+            var stgEl = document.getElementById('stageSelect'); if (stgEl) stgEl.value = 'ALL';
+            var finEl = document.getElementById('financialTierSelect'); if (finEl) finEl.value = 'ALL';
             activeSelectedHasAssets = []; activeSelectedMissingAssets = [];
             var sc = document.getElementsByClassName('summary-card');
             for (var i = 0; i < sc.length; i++) sc[i].classList.remove('active-filter');
@@ -711,7 +776,16 @@
             // Exact artist filter (set when tapping an artist card — cleared by clearAllFilters)
             var matchArtist = !activeArtistFilter ||
                 (card.getAttribute('data-artist-filter') || '').toLowerCase() === activeArtistFilter.toLowerCase();
-            return matchStatus && matchProfile && matchAlbumCtx && matchHas && matchMissing && matchSearch && matchArtist;
+            // Stage filter — maps dropdown values to status strings
+            var stageFilterVal = (document.getElementById('stageSelect') ? document.getElementById('stageSelect').value : 'ALL');
+            var stageStatusMap = { 'inprogressqueue': 'stem creation', 'inunreleasedalbum': 'daw creation', 'readynotinalbum': 'asset gathering', 'releasednotinalbum': 'ready', 'inreleasedalbum': 'ready' };
+            var matchStage = stageFilterVal === 'ALL' || status === (stageStatusMap[stageFilterVal] || stageFilterVal);
+            // Financial tier filter
+            var financialFilterVal = (document.getElementById('financialTierSelect') ? document.getElementById('financialTierSelect').value : 'ALL');
+            var convRate = (MLP && MLP.usdToGbpRate) || (1 / 1.3418);
+            var cardEarnings = parseFloat(card.getAttribute('data-earnings-total')) || 0;
+            var matchFinancial = financialFilterVal === 'ALL' || getFinancialTier(cardEarnings, convRate) === financialFilterVal;
+            return matchStatus && matchProfile && matchAlbumCtx && matchHas && matchMissing && matchSearch && matchArtist && matchStage && matchFinancial;
         }
 
         function evaluateControlMatrix() {
@@ -838,6 +912,104 @@
             Object.keys(map).sort().forEach(function(k) { payload += '💿 ' + k + '\n' + map[k].map(function(t){ return '  - '+t; }).join('\n') + '\n\n'; });
             navigator.clipboard.writeText(payload.trim()).then(function(){ alert('Exported ' + tot + ' tracks.'); }).catch(function(){ alert('Clipboard failed.'); });
         }
+
+        // ── PIPELINE UTILITIES (Point 6 — filter UI pending HTML additions) ──
+        window.PIPELINE_STAGES = {
+            'inprogressqueue':    'Stem Creation',
+            'readynotinalbum':    'Asset Gathering',
+            'releasednotinalbum': 'Released',
+            'inunreleasedalbum':  'DAW Creation',
+            'inreleasedalbum':    'Released Context'
+        };
+        function getFinancialTier(earningsTotal, rate) {
+            var gbp = earningsTotal * rate;
+            if (gbp >= 100.0) return 'tier-high';
+            if (gbp > 0.0)    return 'tier-monetized';
+            return 'tier-zero';
+        }
+        window.getFinancialTier = getFinancialTier;
+
+        // ── TRACK DETAIL POPUP (Point 9) ──
+        function openTrackDetailPopup(trackId) {
+            if (!MLP || !Array.isArray(MLP.tracks)) return;
+            var track = _trackMap[trackId];
+            if (!track) return;
+
+            var backdrop = document.getElementById('trackDetailPopupBackdrop');
+            if (!backdrop) {
+                var shell = document.createElement('div');
+                shell.id = 'trackDetailPopupBackdrop';
+                shell.style.cssText = 'display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.65);z-index:1500;align-items:center;justify-content:center;padding:16px;';
+                shell.innerHTML = '<div style="background:var(--surface);border-radius:12px;padding:20px;max-width:600px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-md);">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">' +
+                    '<h2 id="popupTrackTitle" style="margin:0;font-size:1.2rem;"></h2>' +
+                    '<button onclick="closeTrackDetailPopup()" style="background:transparent;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-muted);">&times;</button>' +
+                    '</div><div id="popupModalInteractiveContent"></div></div>';
+                document.body.appendChild(shell);
+                backdrop = document.getElementById('trackDetailPopupBackdrop');
+            }
+
+            document.getElementById('popupTrackTitle').innerText = track.title || trackId;
+
+            var rate = (MLP && MLP.usdToGbpRate) || (1 / 1.3418);
+            var gbp = ((track.earningsTotal || 0) * rate).toFixed(2);
+            var tier = getFinancialTier(track.earningsTotal || 0, rate);
+            var tierLabel = { 'tier-high': '🟢 High (£100+)', 'tier-monetized': '🟡 Monetised', 'tier-zero': '⚪ £0' }[tier] || tier;
+
+            var fields = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.8rem;margin-top:10px;">' +
+                '<div><strong>ISRC:</strong> ' + escHtml(track.isrc || 'N/A') + '</div>' +
+                '<div><strong>Album:</strong> ' + escHtml(track.albumGroup || 'Loose Single') + '</div>' +
+                '<div><strong>Artist:</strong> ' + escHtml(track.spotifyArtist || 'N/A') + '</div>' +
+                '<div><strong>Stage:</strong> ' + escHtml(track.status || 'N/A') + '</div>' +
+                '<div><strong>Earnings:</strong> £' + gbp + '</div>' +
+                '<div><strong>Tier:</strong> ' + tierLabel + '</div>' +
+                '<div><strong>Release Date:</strong> ' + escHtml(track.spotifyReleaseDate || 'N/A') + '</div>' +
+                '<div><strong>Popularity:</strong> ' + (track.spotifyPopularity || 0) + '</div>' +
+                '</div>';
+
+            // Timeline loaded on-demand from analytics-spotify.json
+            var timelineHtml = '<div style="margin-top:14px;">' +
+                '<button onclick="loadPopupTimeline(\'' + escHtml(trackId) + '\')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:0.78rem;cursor:pointer;">Load Stream Timeline</button>' +
+                '<div id="popup-timeline-' + escHtml(trackId) + '" style="margin-top:8px;"></div></div>';
+
+            document.getElementById('popupModalInteractiveContent').innerHTML = fields +
+                '<hr style="border:none;border-top:1px solid var(--border);margin:12px 0;">' + timelineHtml;
+
+            backdrop.style.display = 'flex';
+        }
+
+        async function loadPopupTimeline(trackId) {
+            var el = document.getElementById('popup-timeline-' + trackId);
+            if (!el) return;
+            el.innerHTML = '<span style="font-size:0.75rem;color:var(--text-muted);">Loading…</span>';
+            try {
+                var track = _trackMap[trackId];
+                var safeName = (track && track.title) ? track.title.replace(/[^a-zA-Z0-9]/g, '_') : trackId;
+                var file = await ghGetFile('analytics/' + safeName + '-analytics-spotify.json');
+                if (!file || !file.content) { el.innerHTML = '<span style="font-size:0.75rem;color:var(--text-muted);">No timeline data.</span>'; return; }
+                var data = JSON.parse(fromBase64(file.content));
+                var timeline = (data.song_timeline || []).filter(function(d) { return d && d.date; }).sort(function(a,b) { return a.date.localeCompare(b.date); });
+                if (!timeline.length) { el.innerHTML = '<span style="font-size:0.75rem;color:var(--text-muted);">No stream entries.</span>'; return; }
+                var maxS = Math.max.apply(null, timeline.map(function(d) { return d.streams || 0; })) || 1;
+                var pts = timeline.map(function(d, i) {
+                    var x = timeline.length > 1 ? (i / (timeline.length - 1)) * 100 : 50;
+                    var y = 100 - (((d.streams || 0) / maxS) * 100);
+                    return x + ',' + y;
+                }).join(' ');
+                el.innerHTML = '<div style="background:var(--bg-card);border:1px solid var(--border);height:80px;border-radius:6px;padding:4px;">' +
+                    '<svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:100%;overflow:visible;">' +
+                    '<polyline points="' + pts + '" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg></div>' +
+                    '<div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--text-muted);margin-top:2px;">' +
+                    '<span>' + timeline[0].date + '</span><span>Peak: ' + maxS.toLocaleString() + '</span><span>' + timeline[timeline.length-1].date + '</span></div>';
+            } catch(e) { el.innerHTML = '<span style="font-size:0.75rem;color:var(--text-muted);">Failed to load.</span>'; }
+        }
+
+        function closeTrackDetailPopup() {
+            var b = document.getElementById('trackDetailPopupBackdrop');
+            if (b) b.style.display = 'none';
+        }
+        window.openTrackDetailPopup = openTrackDetailPopup;
+        window.closeTrackDetailPopup = closeTrackDetailPopup;
 
         // ── UPLOAD / ADMIN / ERROR / PUBLICATION ──
         function toggleErrorSubmissionForm(id) { var p = document.getElementById('subform-' + id); if(p) p.style.display = (p.style.display === 'block') ? 'none' : 'block'; }
