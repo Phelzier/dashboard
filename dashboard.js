@@ -1,4 +1,4 @@
-// ── GLOBAL STATE ──
+        // ── GLOBAL STATE ──
         var activeStatusFilter = 'ALL';
         var activeSelectedHasAssets = [];
         var activeSelectedMissingAssets = [];
@@ -1934,6 +1934,30 @@
             }
         }
 
+        function showAuthScreen(message) {
+            var overlay = document.getElementById('spAuthOverlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'spAuthOverlay';
+                overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+                overlay.innerHTML =
+                    '<div style="background:#fff;border-radius:12px;padding:32px;max-width:420px;text-align:center;font-family:inherit;">' +
+                        '<div style="font-size:2.5rem;margin-bottom:12px;">&#x1F512;</div>' +
+                        '<div id="spAuthMessage" style="color:#e53e3e;font-weight:600;margin-bottom:20px;line-height:1.4;"></div>' +
+                        '<button id="spAuthRetryBtn" style="background:#1DB954;color:#fff;border:none;border-radius:24px;padding:10px 28px;font-weight:700;cursor:pointer;">Try again</button>' +
+                    '</div>';
+                document.body.appendChild(overlay);
+                document.getElementById('spAuthRetryBtn').onclick = function() { spotifyAuth(); };
+            }
+            document.getElementById('spAuthMessage').textContent = message || 'Spotify login failed. Please try again.';
+            overlay.style.display = 'flex';
+        }
+
+        function hideAuthScreen() {
+            var overlay = document.getElementById('spAuthOverlay');
+            if (overlay) overlay.style.display = 'none';
+        }
+
         async function spotifyAuth() {
             var clientId = spotifyGetClientId();
             if (!clientId) { alert('Spotify client ID not configured in dashboard.'); return; }
@@ -1951,6 +1975,15 @@
         async function spotifyExchangeCode(code) {
             var clientId = spotifyGetClientId();
             var verifier = sessionStorage.getItem('pkce_verifier');
+
+            // Strip the code from the URL and clear the verifier immediately, before the
+            // exchange even runs. Auth codes are single-use — if this attempt fails for any
+            // reason, we never want a page refresh to silently retry the same dead code.
+            sessionStorage.removeItem('pkce_verifier');
+            var url = new URL(window.location);
+            url.searchParams.delete('code');
+            history.replaceState({}, '', url);
+
             var resp = await fetch(SPOTIFY_TOKEN_WORKER, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1963,14 +1996,12 @@
                 _spotifyRefreshToken = data.refresh_token;
                 _spotifyTokenExpiry = Date.now() + (data.expires_in * 1000) - 60000;
                 sessionStorage.setItem('sp_refresh', _spotifyRefreshToken);
-                sessionStorage.removeItem('pkce_verifier');
-                var url = new URL(window.location);
-                url.searchParams.delete('code');
-                history.replaceState({}, '', url);
                 verifySpotifyUser().then(function(allowed) {
                     if (allowed) { hideAuthScreen(); spotifyInit(); }
                     else { _spotifyAccessToken = null; sessionStorage.removeItem('sp_refresh'); showAuthScreen('Access denied. Your Spotify account (' + _spotifyUserEmail + ') is not authorised.'); }
                 });
+            } else {
+                showAuthScreen('Spotify login failed (' + (data.error_description || data.error || 'unknown error') + '). Please try again.');
             }
         }
 
