@@ -1123,8 +1123,15 @@
         async function openDiagnosticsPanel() { showPanel('admin'); }
 
         async function refreshDiagnostics() {
+            // Defer one tick so _activatePanel has finished switching the DOM
+            await new Promise(function(r){ setTimeout(r, 50); });
             var el = document.getElementById('diagnosticsContent');
+            if (!el) return;
+            el.innerHTML = '<div style="color:var(--text-muted);padding:4px 0;">Running…</div>';
+            try { await _runDiagnostics(el); } catch(e) { el.innerHTML = '<div style="color:#e53e3e;padding:4px 0;">Error: ' + String(e) + '</div>'; }
+        }
 
+        async function _runDiagnostics(el) {
             function row(label, value, ok) {
                 var colour = ok === true ? '#1DB954' : ok === false ? '#e53e3e' : 'var(--text)';
                 return '<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">'
