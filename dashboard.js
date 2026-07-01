@@ -782,7 +782,11 @@
             // Stage filter — maps dropdown values to status strings
             var stageFilterVal = (document.getElementById('stageSelect') ? document.getElementById('stageSelect').value : 'ALL');
             var stageStatusMap = { 'inprogressqueue': 'stem creation', 'inunreleasedalbum': 'daw creation', 'readynotinalbum': 'asset gathering', 'releasednotinalbum': 'ready', 'inreleasedalbum': 'ready' };
-            var matchStage = stageFilterVal === 'ALL' || status === (stageStatusMap[stageFilterVal] || stageFilterVal);
+            var isAlbumCard = card.getAttribute('data-is-album') === 'TRUE';
+            var matchStage = stageFilterVal === 'ALL' ||
+                (stageFilterVal === 'releasednotinalbum' && status === 'ready' && !isAlbumCard) ||
+                (stageFilterVal === 'inreleasedalbum' && status === 'ready' && isAlbumCard) ||
+                (stageFilterVal !== 'releasednotinalbum' && stageFilterVal !== 'inreleasedalbum' && status === (stageStatusMap[stageFilterVal] || stageFilterVal));
             // Financial tier filter
             var financialFilterVal = (document.getElementById('financialTierSelect') ? document.getElementById('financialTierSelect').value : 'ALL');
             var convRate = (MLP && MLP.usdToGbpRate) || (1 / 1.3418);
