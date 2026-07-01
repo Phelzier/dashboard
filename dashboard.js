@@ -1843,7 +1843,7 @@
                 html += '<div class="sp-pl-row" data-uri="'+escHtml(pl.uri)+'" data-id="'+escHtml(pl.id)+'" style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:var(--bg-card);cursor:pointer;">' +
                     (img ? '<img src="'+img+'" style="width:44px;height:44px;border-radius:4px;flex-shrink:0;" />' : '<div style="width:44px;height:44px;border-radius:4px;background:var(--bg-section);flex-shrink:0;"></div>') +
                     '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(pl.name)+'</div>' +
-                    '<div style="font-size:0.75rem;color:var(--text-muted);">'+((pl.tracks&&pl.tracks.total)||0)+' tracks</div></div>' +
+                    '<div style="font-size:0.75rem;color:var(--text-muted);">'+((pl.items&&pl.items.total)||(pl.tracks&&pl.tracks.total)||0)+' tracks</div></div>' +
                     '<button class="sp-pl-play-btn" data-uri="'+escHtml(pl.uri)+'" style="background:#1DB954;color:#fff;border:none;border-radius:5px;padding:5px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;">▶</button>' +
                     '<span style="font-size:0.75rem;color:var(--text-muted);">&#9654; Open</span></div>';
             });
@@ -1861,14 +1861,24 @@
                     if (e.target.tagName === 'BUTTON') return;
                     var id = this.dataset.id;
                     if (!_spPlaylistTracks[id]) {
-                        var td = await spotifyApiCall('GET', '/playlists/'+id+'/tracks?limit=50&fields=items(track(uri,name,artists,album))');
-                        _spPlaylistTracks[id] = td ? (td.items||[]).map(function(i){return i.track;}).filter(Boolean) : [];
+                        var td = await spotifyApiCall('GET', '/playlists/'+id+'/items?limit=50&fields=items(item(uri,name,artists,album))');
+                        if (!td) {
+                            // New API restriction: track contents are only returned for playlists
+                            // you own or collaborate on. Followed/other playlists return no items.
+                            _spPlaylistTracks[id] = [];
+                        } else {
+                            _spPlaylistTracks[id] = (td.items||[]).map(function(i){return i.item;}).filter(Boolean);
+                        }
                     }
                     var tracks = _spPlaylistTracks[id];
                     var uris = tracks.map(function(t){return t.uri;});
                     var subEl = document.createElement('div');
                     subEl.style.cssText = 'padding:8px 0 0 54px;';
-                    tracks.forEach(function(t) { subEl.appendChild(renderSpotifyTrackRow(t, uris, 'playlist')); });
+                    if (!tracks.length) {
+                        subEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.8rem;padding:8px 0;">Track list not available — this is a followed playlist, not one you own or collaborate on.</div>';
+                    } else {
+                        tracks.forEach(function(t) { subEl.appendChild(renderSpotifyTrackRow(t, uris, 'playlist')); });
+                    }
                     var existing = this.nextSibling;
                     if (existing && existing.classList && existing.classList.contains('sp-pl-tracks')) {
                         existing.remove();
