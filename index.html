@@ -36,7 +36,7 @@
     <div class="panel active" id="panel-artist">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
             <h2 style="margin:0;font-size:1.1rem;font-weight:800;color:var(--accent);">Artists</h2>
-            <span style="font-size:0.7rem;color:var(--text-muted);font-weight:500;">Updated 2026-07-01T13:25:49</span>
+            <span style="font-size:0.7rem;color:var(--text-muted);font-weight:500;">Updated 2026-07-01T13:54:24</span>
         </div>
         <div class='artist-grid'><div class='artist-card' data-artist='2 The MaXXX'><div class='artist-card-hero' style='display:flex;align-items:center;justify-content:center;font-size:4rem;background:#e2e8f0;'>🎤</div><div class='artist-card-body'><div class='artist-card-name'>2 The MaXXX</div><div class='artist-card-meta'>0 track(s) in library</div><div class='section-header'>Albums &amp; Singles</div><div class='artist-album-list'></div></div></div><div class='artist-card' data-artist='4 The MaXXX'><div class='artist-card-hero' style='display:flex;align-items:center;justify-content:center;font-size:4rem;background:#e2e8f0;'>🎤</div><div class='artist-card-body'><div class='artist-card-name'>4 The MaXXX</div><div class='artist-card-meta'>0 track(s) in library</div><div class='section-header'>Albums &amp; Singles</div><div class='artist-album-list'></div></div></div></div>
     </div>
@@ -65,8 +65,9 @@
                 <option value='Letisha'>Letisha</option>
                 </select>
                 <select id="albumContextSelect" class="filter-select" onchange="evaluateControlMatrix()"><option value="ALL">All</option><option value="ALBUM">In Album</option><option value="LOOSE">Singles</option></select>
-                <select id="sortBySelect" class="filter-select" onchange="applySortOrder()"><option value="none">Default Order</option><option value="earnings-total">Sort: Total Earnings</option>
+                <select id="sortBySelect" class="filter-select" onchange="applySortOrder()"><option value="none">Default Order</option><option value="earnings-total">Sort: Total Earnings</option><option value="confidence">Sort: Confidence</option>
                 </select>
+                <button id="sortDirBtn" class="nav-icon-btn" onclick="toggleSortDir()" title="Toggle sort direction" style="font-size:0.75rem;font-weight:700;padding:4px 8px;background:var(--bg-card);color:var(--text);border:1px solid var(--border);border-radius:6px;cursor:pointer;white-space:nowrap;">Z-A</button>
             </div>
             <div class="filter-row-search">
                 <input type="text" id="searchInput" class="filter-input" placeholder="Search track title or album..." oninput="evaluateControlMatrix()">
