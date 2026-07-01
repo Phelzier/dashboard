@@ -6,6 +6,7 @@
         var selectionModeActive = false;
         var selectedTrackIds = [];
         var activeSortKey = 'none';
+        var activeSortDir = 'desc'; // 'asc' or 'desc'
         var BATCH_EMAIL_BODY_CHAR_LIMIT = 1800;
         var currentUploadModalTrackId = null;
         var currentLyricsTrackContext = null;
@@ -40,6 +41,7 @@
             (MLP.profiles || []).forEach(function(p) { var o = document.createElement('option'); o.value = p; o.text = p; ps.appendChild(o); });
             var ss = document.getElementById('sortBySelect');
             while (ss.options.length > 2) ss.remove(2);
+            var cOpt = document.createElement('option'); cOpt.value = 'confidence'; cOpt.text = 'Sort: Confidence'; ss.appendChild(cOpt);
             (MLP.companies || []).forEach(function(c) { var k = c.replace(/[^a-zA-Z0-9]/g,'').toLowerCase(); var o = document.createElement('option'); o.value = 'earnings-' + k; o.text = 'Sort: ' + c; ss.appendChild(o); });
         }
 
@@ -126,7 +128,7 @@
             var ea = t.earningsByCompany ? Object.keys(t.earningsByCompany).map(function(k){ return ' data-earnings-'+k.replace(/[^a-zA-Z0-9]/g,'').toLowerCase()+'="'+(t.earningsByCompany[k]||0)+'"'; }).join('') : '';
             var h = '<div class="card" id="'+t.id+'" data-title="'+escHtml(t.title)+'" data-status="'+escHtml(t.status)+'" data-errors="'+escHtml(t.errors)+'" data-missing="'+escHtml(t.missing)+'" data-existing="'+escHtml(t.existing)+'" data-profile="'+escHtml(t.profile||'')+'" data-is-album="'+(t.isAlbum?'TRUE':'FALSE')+'" data-album-group="'+escHtml(t.albumGroup||'')+'" data-explicit="'+(t.explicit?'TRUE':'FALSE')+'" data-published="'+(t.published?'TRUE':'FALSE')+'" data-earnings-total="'+(t.earningsTotal||0)+'" data-isrc="'+escHtml(t.isrc||'')+'" data-spotify-artist="'+escHtml(t.spotifyArtist||'')+'" data-spotify-url="'+escHtml(t.spotifyUrl||'')+'" data-spotify-uri="'+escHtml(t.spotifyUri||'')+'" data-artist-filter="'+escHtml(t.spotifyArtist||'')+'"'+ea+'>';
             h += '<div class="card-select-wrapper"><input type="checkbox" class="card-select-checkbox" id="select-'+t.id+'" data-song-name="'+escHtml(t.title)+'" onchange="onCardSelectionChanged(\''+t.id+'\')" /></div>';
-            h += '<div class="card-main-content"><img class="thumb-img" src="'+escHtml(t.thumbUrl||'data:image/png;base64,')+'" alt="Cover" /><div class="card-details"><div class="card-details-top-row"><h3>'+escHtml(t.title)+' <span class="status-pill '+spc+'">'+escHtml(t.status)+'</span></h3><div class="card-actions-wrapper"><button class="detail-btn" onclick="showPanel(\'detail\',{cardId:\''+t.id+'\'})">Detail</button><span id=\"conf-badge-'+t.id+'\" style=\"display:none;font-size:0.7rem;color:#1DB954;font-weight:700;margin-left:4px;\"></span>'+(t.spotifyUri&&_spotifyAccessToken?'<button class="action-icon-btn" onclick="playerPlayUri(\''+t.spotifyUri+'\')" title="Play">&#x25B6;</button>':'')+'<button class="action-icon-btn" onclick="dispatchVerificationMarkViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')" title="'+escHtml(vtt)+'">&#x1F44D;'+vcb+'</button><button class="action-icon-btn" onclick="toggleUploadPicker(\''+t.id+'\')" title="Upload a missing item">&#x1F4E4;</button><button class="action-icon-btn" onclick="togglePublicationForm(\''+t.id+'\')" title="Update publication">&#x1F310;</button><button class="action-icon-btn" onclick="toggleErrorSubmissionForm(\''+t.id+'\')">&#x26A0;&#xFE0F;</button><a href="'+escHtml(t.nasUrl||'')+'" class="action-icon-btn" target="_blank">&#x1F4C1;</a></div></div><div class="lifecycle-stepper" title="Stem Creation -> DAW Creation -> Asset Gathering -> Ready -> Released">'+stepHtml+'</div><div class="meta-grid"><div class="meta-row"><span class="label">Album:</span>'+alh+'</div><div class="meta-row"><span class="label">Profile:</span><span>'+escHtml(t.profile||'N/A')+'</span></div><div class="meta-row"><span class="label">ISRC:</span>'+ih+'</div>'+mr+elh+'<div class="meta-row"><span class="label">Published:</span>'+pbh+'</div><div class="meta-row"><span class="label">Verified:</span>'+vbh+'</div><div class="meta-row"><span class="label">Spotify:</span>'+sbh+'</div><div class="meta-row"><span class="label">Revenue Stream:</span>'+rvh+'</div><div class="meta-row"><span class="label">Earnings:</span>'+ebh+'</div><div class="meta-row"><span class="label">Platforms:</span>'+ffh+'<div class="meta-row"><span class="label">Confidence:</span><span style="font-size:0.85rem;color:#1DB954;font-weight:600;">'+(_confidenceScores[t.id]?'\uD83D\uDC4D '+_confidenceScores[t.id]+' thumbs up':'Not yet rated')+'</span></div></div>'+gr+'</div></div>';
+            h += '<div class="card-main-content"><img class="thumb-img" src="'+escHtml(t.thumbUrl||'data:image/png;base64,')+'" alt="Cover" /><div class="card-details"><div class="card-details-top-row"><h3>'+escHtml(t.title)+' <span class="status-pill '+spc+'">'+escHtml(t.status)+'</span></h3><div class="card-actions-wrapper"><button class="detail-btn" onclick="showPanel(\'detail\',{cardId:\''+t.id+'\'})">Detail</button><span id=\"conf-badge-'+t.id+'\" style=\"display:none;font-size:0.7rem;color:#1DB954;font-weight:700;margin-left:4px;\"></span>'+(t.spotifyUri&&_spotifyAccessToken?'<button class="action-icon-btn" onclick="playerPlayUriInContext(\''+t.spotifyUri+'\')" title="Play in order">&#x25B6;</button>':'')+'<button class="action-icon-btn" onclick="dispatchVerificationMarkViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')" title="'+escHtml(vtt)+'">&#x1F44D;'+vcb+'</button><button class="action-icon-btn" onclick="toggleUploadPicker(\''+t.id+'\')" title="Upload a missing item">&#x1F4E4;</button><button class="action-icon-btn" onclick="togglePublicationForm(\''+t.id+'\')" title="Update publication">&#x1F310;</button><button class="action-icon-btn" onclick="toggleErrorSubmissionForm(\''+t.id+'\')">&#x26A0;&#xFE0F;</button><a href="'+escHtml(t.nasUrl||'')+'" class="action-icon-btn" target="_blank">&#x1F4C1;</a></div></div><div class="lifecycle-stepper" title="Stem Creation -> DAW Creation -> Asset Gathering -> Ready -> Released">'+stepHtml+'</div><div class="meta-grid"><div class="meta-row"><span class="label">Album:</span>'+alh+'</div><div class="meta-row"><span class="label">Profile:</span><span>'+escHtml(t.profile||'N/A')+'</span></div><div class="meta-row"><span class="label">ISRC:</span>'+ih+'</div>'+mr+elh+'<div class="meta-row"><span class="label">Published:</span>'+pbh+'</div><div class="meta-row"><span class="label">Verified:</span>'+vbh+'</div><div class="meta-row"><span class="label">Spotify:</span>'+sbh+'</div><div class="meta-row"><span class="label">Revenue Stream:</span>'+rvh+'</div><div class="meta-row"><span class="label">Earnings:</span>'+ebh+'</div><div class="meta-row"><span class="label">Platforms:</span>'+ffh+'<div class="meta-row"><span class="label">Confidence:</span><span style="font-size:0.85rem;color:#1DB954;font-weight:600;">'+(_confidenceScores[t.id]?'\uD83D\uDC4D '+_confidenceScores[t.id]+' thumbs up':'Not yet rated')+'</span></div></div>'+gr+'</div></div>';
             h += '<div class="error-subform-panel" id="subform-'+t.id+'"><div class="subform-grid"><div class="subform-row"><label>Time:</label><input type="text" id="input-stamp-'+t.id+'" class="subform-input" placeholder="1:24 (MM:SS)" /></div><div class="subform-row"><label>Issue:</label><input type="text" id="input-issue-'+t.id+'" class="subform-input" /></div><div class="subform-row"><label>Fix:</label><input type="text" id="input-fix-'+t.id+'" class="subform-input" /></div><div class="subform-actions"><button class="subform-btn btn-add" onclick="stageLocalErrorEntry(\''+t.id+'\','+JSON.stringify(t.title)+')">Stage Note</button><button class="subform-btn btn-email" onclick="dispatchStagedErrorsViaDrive(\''+t.id+'\','+JSON.stringify(t.title)+')">Send via Drive</button></div><div class="staged-errors-ledger" id="ledger-'+t.id+'"></div></div></div>';
             h += '<div class="publication-subform-panel" id="pubform-'+t.id+'"><div class="subform-grid"><div class="subform-row"><label>Platform:</label><input type="text" id="pub-platform-'+t.id+'" class="subform-input" placeholder="Spotify, YouTube, etc." value="'+escHtml(pp)+'" /></div><div class="subform-row"><label>Date:</label><input type="text" id="pub-date-'+t.id+'" class="subform-input" placeholder="YYYY-MM-DD" value="'+escHtml(pd)+'" /></div><div class="subform-row"><label>Link:</label><input type="text" id="pub-link-'+t.id+'" class="subform-input" placeholder="https://..." value="'+escHtml(pl)+'" /></div><div class="subform-actions"><button class="subform-btn btn-email" onclick="dispatchPublicationUpdateViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')">Send Update</button></div></div></div></div>';
             return h;
@@ -658,7 +660,7 @@
             document.getElementById('profileSelect').value = 'ALL';
             document.getElementById('albumContextSelect').value = 'ALL';
             document.getElementById('sortBySelect').value = 'none';
-            activeSortKey = 'none'; activeStatusFilter = 'ALL'; activeArtistFilter = '';
+            activeSortKey = 'none'; activeStatusFilter = 'ALL'; activeArtistFilter = ''; activeSortDir = 'desc'; var sdb = document.getElementById('sortDirBtn'); if (sdb) sdb.textContent = 'Z-A';
             activeSelectedHasAssets = []; activeSelectedMissingAssets = [];
             var sc = document.getElementsByClassName('summary-card');
             for (var i = 0; i < sc.length; i++) sc[i].classList.remove('active-filter');
@@ -681,6 +683,7 @@
             evaluateControlMatrix();
         }
         function applySortOrder() { activeSortKey = document.getElementById('sortBySelect').value; evaluateControlMatrix(); }
+        function toggleSortDir() { activeSortDir = activeSortDir === 'desc' ? 'asc' : 'desc'; var btn = document.getElementById('sortDirBtn'); if (btn) btn.textContent = activeSortDir === 'asc' ? 'A-Z' : 'Z-A'; evaluateControlMatrix(); }
 
         function checkCardAgainstActiveMatrixRules(card, query, targetProfile, albumContextMode) {
             var status    = (card.getAttribute('data-status') || '').toLowerCase().trim();
@@ -730,8 +733,21 @@
             var liveCards = document.getElementsByClassName('card');
             var cardsArr  = Array.prototype.slice.call(liveCards);
             if (activeSortKey !== 'none') {
-                var attr = 'data-earnings-' + activeSortKey.replace('earnings-','');
-                cardsArr.sort(function(a,b) { return (parseFloat(b.getAttribute(attr))||0) - (parseFloat(a.getAttribute(attr))||0); });
+                if (activeSortKey === 'confidence') {
+                    cardsArr.sort(function(a,b) {
+                        var idA = a.id, idB = b.id;
+                        var tA = _trackMap[idA], tB = _trackMap[idB];
+                        var scoreA = computeEffectiveConfidence(idA, tA);
+                        var scoreB = computeEffectiveConfidence(idB, tB);
+                        return activeSortDir === 'asc' ? scoreA - scoreB : scoreB - scoreA;
+                    });
+                } else {
+                    var attr = 'data-earnings-' + activeSortKey.replace('earnings-','');
+                    cardsArr.sort(function(a,b) {
+                        var vA = parseFloat(a.getAttribute(attr))||0, vB = parseFloat(b.getAttribute(attr))||0;
+                        return activeSortDir === 'asc' ? vA - vB : vB - vA;
+                    });
+                }
             }
             var visible = 0;
             var gC = document.getElementById('albumGroupsContainer');
@@ -1224,6 +1240,13 @@
 
         // ── CONFIDENCE SCORES ─────────────────────────────────────────────────
         var _confidenceScores = {};
+        // Effective confidence = thumbs-up count minus confirmed error penalty (-1 per error line).
+        function computeEffectiveConfidence(trackId, track) {
+            var thumbs = _confidenceScores[trackId] || 0;
+            if (!track || track.errors !== 'Yes' || !track.errorText) return thumbs;
+            var errorLines = track.errorText.split('\n').filter(function(l) { return l.trim() && l.indexOf(';') !== -1; });
+            return thumbs - errorLines.length; // -1 per confirmed error; all types set to -1 for now
+        }
         async function loadConfidenceScores() {
             try {
                 var files=await ghList('analytics');
@@ -1241,10 +1264,24 @@
             } catch(e){}
         }
         function updateConfidenceBadges() {
-            Object.keys(_confidenceScores).forEach(function(id){
-                var count=_confidenceScores[id]; if(!count) return;
-                var badge=document.getElementById('conf-badge-'+id);
-                if(badge){badge.textContent='������ '+count;badge.style.display='inline';}
+            MLP.tracks.forEach(function(t) {
+                var badge = document.getElementById('conf-badge-' + t.id);
+                if (!badge) return;
+                var thumbs = _confidenceScores[t.id] || 0;
+                var errCount = 0;
+                if (t.errors === 'Yes' && t.errorText) {
+                    errCount = t.errorText.split('\n').filter(function(l){ return l.trim() && l.indexOf(';') !== -1; }).length;
+                }
+                var eff = thumbs - errCount;
+                if (thumbs > 0 || errCount > 0) {
+                    var label = '\uD83D\uDC4D ' + thumbs;
+                    if (errCount > 0) label += ' \u26A0\uFE0F\u2212' + errCount + ' = ' + eff;
+                    badge.textContent = label;
+                    badge.style.display = 'inline';
+                    badge.style.color = eff < 0 ? '#e53e3e' : '#1DB954';
+                } else {
+                    badge.style.display = 'none';
+                }
             });
         }
 
@@ -1310,6 +1347,161 @@
                 section.appendChild(entry);
             });
             detailContent.appendChild(section);
+        }
+
+        // ── SPOTIFY VIEW RENDERERS ────────────────────────────────────────────
+        // Returns ordered list of visible card spotifyUris from the current DOM state
+        function getVisibleQueueUris() {
+            var cards = document.getElementById('cardsContainer').children;
+            var uris = [];
+            for (var i = 0; i < cards.length; i++) {
+                var c = cards[i];
+                if (c.style.display === 'none') continue;
+                var uri = c.getAttribute('data-spotify-uri');
+                if (uri) uris.push(uri);
+            }
+            return uris;
+        }
+
+        async function playerPlayUriInContext(uri) {
+            // Play uri but queue all other visible tracks after it
+            var allUris = getVisibleQueueUris();
+            var idx = allUris.indexOf(uri);
+            if (idx === -1) { await playerPlayUri(uri); return; }
+            // Reorder: start at idx
+            var ordered = allUris.slice(idx).concat(allUris.slice(0, idx));
+            try {
+                if (_spotifyMode === 'sdk' && _spotifyDeviceId) {
+                    await spotifyApiCall('PUT', '/me/player/play', { uris: ordered, device_id: _spotifyDeviceId });
+                } else {
+                    await spotifyApiCall('PUT', '/me/player/play', { uris: ordered });
+                }
+                _spotifyCurrentUri = uri;
+                showPlayerDock();
+                startApiPoller();
+            } catch(e) { await playerPlayUri(uri); }
+        }
+
+        async function playerPlayAlbum(albumUri, startTrackUri) {
+            // Play an album context_uri, optionally offset to a specific track
+            var body = { context_uri: albumUri };
+            if (startTrackUri) body.offset = { uri: startTrackUri };
+            if (_spotifyDeviceId) body.device_id = _spotifyDeviceId;
+            await spotifyApiCall('PUT', '/me/player/play', body);
+            showPlayerDock();
+            startApiPoller();
+        }
+
+        function renderSpotifyTrackRow(track, contextUris, ctxLabel) {
+            // track: Spotify track object; contextUris: array of uris to queue; ctxLabel: string
+            var uri = track.uri;
+            var name = track.name || '—';
+            var artists = (track.artists||[]).map(function(a){return a.name;}).join(', ');
+            var album = track.album ? track.album.name : '';
+            var img = track.album && track.album.images && track.album.images[0] ? track.album.images[0].url : '';
+            var row = document.createElement('div');
+            row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;';
+            row.innerHTML =
+                (img ? '<img src="'+img+'" style="width:40px;height:40px;border-radius:4px;flex-shrink:0;" />' : '<div style="width:40px;height:40px;border-radius:4px;background:var(--bg-card);flex-shrink:0;"></div>') +
+                '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(name)+'</div>' +
+                '<div style="font-size:0.75rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(artists)+(album?' · '+escHtml(album):'')+'</div></div>' +
+                '<button style="background:#1DB954;color:#fff;border:none;border-radius:5px;padding:5px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;">▶</button>';
+            row.querySelector('button').addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (contextUris && contextUris.length > 1) {
+                    var idx = contextUris.indexOf(uri);
+                    var ordered = idx >= 0 ? contextUris.slice(idx).concat(contextUris.slice(0, idx)) : contextUris;
+                    (function() {
+                        var body = { uris: ordered };
+                        if (_spotifyDeviceId) body.device_id = _spotifyDeviceId;
+                        spotifyApiCall('PUT', '/me/player/play', body).then(function() { _spotifyCurrentUri = uri; showPlayerDock(); startSpotifyPoll(); });
+                    })();
+                } else {
+                    playerPlayUri(uri);
+                }
+            });
+            return row;
+        }
+
+        async function renderSpotifyPlaylists(el) {
+            if (!_spPlaylists) {
+                var data = await spotifyApiCall('GET', '/me/playlists?limit=50');
+                _spPlaylists = data ? (data.items || []) : [];
+            }
+            if (!_spPlaylists.length) { el.innerHTML = '<div style="color:var(--text-muted);padding:12px;">No playlists found.</div>'; return; }
+            var html = '<div style="display:flex;flex-direction:column;gap:6px;">';
+            _spPlaylists.forEach(function(pl) {
+                var img = pl.images && pl.images[0] ? pl.images[0].url : '';
+                html += '<div class="sp-pl-row" data-uri="'+escHtml(pl.uri)+'" data-id="'+escHtml(pl.id)+'" style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:var(--bg-card);cursor:pointer;">' +
+                    (img ? '<img src="'+img+'" style="width:44px;height:44px;border-radius:4px;flex-shrink:0;" />' : '<div style="width:44px;height:44px;border-radius:4px;background:var(--bg-section);flex-shrink:0;"></div>') +
+                    '<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+escHtml(pl.name)+'</div>' +
+                    '<div style="font-size:0.75rem;color:var(--text-muted);">'+((pl.tracks&&pl.tracks.total)||0)+' tracks</div></div>' +
+                    '<button class="sp-pl-play-btn" data-uri="'+escHtml(pl.uri)+'" style="background:#1DB954;color:#fff;border:none;border-radius:5px;padding:5px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;">▶</button>' +
+                    '<span style="font-size:0.75rem;color:var(--text-muted);">&#9654; Open</span></div>';
+            });
+            html += '</div>';
+            el.innerHTML = html;
+            el.querySelectorAll('.sp-pl-play-btn').forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    var uri = this.dataset.uri;
+                    playerPlayAlbum(uri, null);
+                });
+            });
+            el.querySelectorAll('.sp-pl-row').forEach(function(row) {
+                row.addEventListener('click', async function(e) {
+                    if (e.target.tagName === 'BUTTON') return;
+                    var id = this.dataset.id;
+                    if (!_spPlaylistTracks[id]) {
+                        var td = await spotifyApiCall('GET', '/playlists/'+id+'/tracks?limit=50&fields=items(track(uri,name,artists,album))');
+                        _spPlaylistTracks[id] = td ? (td.items||[]).map(function(i){return i.track;}).filter(Boolean) : [];
+                    }
+                    var tracks = _spPlaylistTracks[id];
+                    var uris = tracks.map(function(t){return t.uri;});
+                    var subEl = document.createElement('div');
+                    subEl.style.cssText = 'padding:8px 0 0 54px;';
+                    tracks.forEach(function(t) { subEl.appendChild(renderSpotifyTrackRow(t, uris, 'playlist')); });
+                    var existing = this.nextSibling;
+                    if (existing && existing.classList && existing.classList.contains('sp-pl-tracks')) {
+                        existing.remove();
+                    } else {
+                        subEl.className = 'sp-pl-tracks';
+                        this.parentNode.insertBefore(subEl, this.nextSibling);
+                    }
+                });
+            });
+        }
+
+        async function renderSpotifyLiked(el) {
+            var data = await spotifyApiCall('GET', '/me/tracks?limit=50');
+            var items = data ? (data.items || []) : [];
+            if (!items.length) { el.innerHTML = '<div style="color:var(--text-muted);padding:12px;">No liked songs.</div>'; return; }
+            var tracks = items.map(function(i){return i.track;}).filter(Boolean);
+            var uris = tracks.map(function(t){return t.uri;});
+            var div = document.createElement('div');
+            tracks.forEach(function(t) { div.appendChild(renderSpotifyTrackRow(t, uris, 'liked')); });
+            el.innerHTML = ''; el.appendChild(div);
+        }
+
+        async function renderSpotifyRecent(el) {
+            var data = await spotifyApiCall('GET', '/me/player/recently-played?limit=50');
+            var items = data ? (data.items || []) : [];
+            if (!items.length) { el.innerHTML = '<div style="color:var(--text-muted);padding:12px;">No recent tracks.</div>'; return; }
+            var tracks = items.map(function(i){return i.track;}).filter(Boolean);
+            var uris = tracks.map(function(t){return t.uri;});
+            var div = document.createElement('div');
+            tracks.forEach(function(t) { div.appendChild(renderSpotifyTrackRow(t, uris, 'recent')); });
+            el.innerHTML = ''; el.appendChild(div);
+        }
+
+        async function renderSpotifyTop(el) {
+            var data = await spotifyApiCall('GET', '/me/top/tracks?limit=50&time_range=medium_term');
+            var tracks = data ? (data.items || []) : [];
+            if (!tracks.length) { el.innerHTML = '<div style="color:var(--text-muted);padding:12px;">No top tracks found.</div>'; return; }
+            var uris = tracks.map(function(t){return t.uri;});
+            var div = document.createElement('div');
+            tracks.forEach(function(t) { div.appendChild(renderSpotifyTrackRow(t, uris, 'top')); });
+            el.innerHTML = ''; el.appendChild(div);
         }
 
         function switchSpotifyView(view) {
@@ -1461,13 +1653,7 @@
             document.getElementById('playerDock').classList.add('visible');
             document.body.style.paddingBottom = '70px';
             var btn = document.getElementById('spotifyConnectBtn');
-            if (btn) {
-                btn.innerHTML = '&#x25CF; Connected';
-                btn.style.background = '#1DB954';
-                btn.onclick = null;
-                btn.style.cursor = 'default';
-                btn.title = 'Spotify connected';
-            }
+            if (btn) btn.style.display = 'none'; // auto-connected; button not needed
             // Show Spotify tab
             var spTab = document.getElementById('tab-spotify');
             if (spTab) spTab.style.display = '';
@@ -1587,7 +1773,7 @@
                 .catch(function(){alert('Failed to submit report.');});
         }
 
-        // On page load: check for OAuth callback code, or restore existing token
+        // On page load: check for OAuth callback code, or restore existing token, or auto-redirect to auth
         (function spotifyBoot() {
             var params = new URLSearchParams(window.location.search);
             var code = params.get('code');
@@ -1597,7 +1783,10 @@
                 _spotifyRefreshToken = rt;
                 spotifyRefreshAccessToken().then(function(ok) {
                     if (ok) spotifyInit();
+                    else { sessionStorage.removeItem('sp_refresh'); spotifyAuth(); }
                 });
+            } else {
+                spotifyAuth(); // First visit — redirect to Spotify login immediately
             }
         })();
 
