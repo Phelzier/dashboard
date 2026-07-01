@@ -1447,7 +1447,7 @@
 
         // ── SPOTIFY PLAYER ──
         var SPOTIFY_CLIENT_ID = '';  // injected at runtime from dashboard data attr
-        var SPOTIFY_TOKEN_WORKER = 'https://spotify-token-refresh.cloudfare-fb3.workers.dev/';
+        var SPOTIFY_TOKEN_WORKER = 'https://spotify-token-refresh.cloudflare-fb3.workers.dev/';
         var SPOTIFY_REDIRECT_URI = 'https://phelzier.github.io/dashboard';
         var SPOTIFY_SCOPES = 'streaming user-read-email user-read-private user-read-playback-state user-modify-playback-state user-library-read playlist-read-private user-top-read user-read-recently-played';
 
