@@ -1463,6 +1463,19 @@
         var _spotifyCurrentMs = 0;
         var _spotifyIsPlaying = false;
         var _spotifyDurationMs = 1;
+        var _spotifyUserEmail = null;
+
+        var SPOTIFY_ALLOWED_DOMAINS = ['psfamily.co.uk','psfamily.net','benandtish.co.uk','2themaxxx.co.uk','4themaxxx.co.uk'];
+
+        async function verifySpotifyUser() {
+            try {
+                var resp = await spotifyApiCall('GET', '/me');
+                if (!resp || !resp.email) return false;
+                _spotifyUserEmail = resp.email;
+                var domain = _spotifyUserEmail.split('@')[1] || '';
+                return SPOTIFY_ALLOWED_DOMAINS.indexOf(domain) !== -1;
+            } catch(e) { return false; }
+        }
 
         // PKCE helpers
         function _pkceRandom(len) {
