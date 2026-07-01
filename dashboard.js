@@ -126,7 +126,7 @@
             var ea = t.earningsByCompany ? Object.keys(t.earningsByCompany).map(function(k){ return ' data-earnings-'+k.replace(/[^a-zA-Z0-9]/g,'').toLowerCase()+'="'+(t.earningsByCompany[k]||0)+'"'; }).join('') : '';
             var h = '<div class="card" id="'+t.id+'" data-title="'+escHtml(t.title)+'" data-status="'+escHtml(t.status)+'" data-errors="'+escHtml(t.errors)+'" data-missing="'+escHtml(t.missing)+'" data-existing="'+escHtml(t.existing)+'" data-profile="'+escHtml(t.profile||'')+'" data-is-album="'+(t.isAlbum?'TRUE':'FALSE')+'" data-album-group="'+escHtml(t.albumGroup||'')+'" data-explicit="'+(t.explicit?'TRUE':'FALSE')+'" data-published="'+(t.published?'TRUE':'FALSE')+'" data-earnings-total="'+(t.earningsTotal||0)+'" data-isrc="'+escHtml(t.isrc||'')+'" data-spotify-artist="'+escHtml(t.spotifyArtist||'')+'" data-spotify-url="'+escHtml(t.spotifyUrl||'')+'" data-spotify-uri="'+escHtml(t.spotifyUri||'')+'" data-artist-filter="'+escHtml(t.spotifyArtist||'')+'"'+ea+'>';
             h += '<div class="card-select-wrapper"><input type="checkbox" class="card-select-checkbox" id="select-'+t.id+'" data-song-name="'+escHtml(t.title)+'" onchange="onCardSelectionChanged(\''+t.id+'\')" /></div>';
-            h += '<div class="card-main-content"><img class="thumb-img" src="'+escHtml(t.thumbUrl||'data:image/png;base64,')+'" alt="Cover" /><div class="card-details"><div class="card-details-top-row"><h3>'+escHtml(t.title)+' <span class="status-pill '+spc+'">'+escHtml(t.status)+'</span></h3><div class="card-actions-wrapper"><button class="detail-btn" onclick="showPanel(\'detail\',{cardId:\''+t.id+'\'})">Detail</button>'+(t.spotifyUri&&_spotifyAccessToken?'<button class="action-icon-btn" onclick="playerPlayUri(\''+t.spotifyUri+'\')" title="Play">&#x25B6;</button>':'')+'<button class="action-icon-btn" onclick="dispatchVerificationMarkViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')" title="'+escHtml(vtt)+'">&#x1F44D;'+vcb+'</button><button class="action-icon-btn" onclick="toggleUploadPicker(\''+t.id+'\')" title="Upload a missing item">&#x1F4E4;</button><button class="action-icon-btn" onclick="togglePublicationForm(\''+t.id+'\')" title="Update publication">&#x1F310;</button><button class="action-icon-btn" onclick="toggleErrorSubmissionForm(\''+t.id+'\')">&#x26A0;&#xFE0F;</button><a href="'+escHtml(t.nasUrl||'')+'" class="action-icon-btn" target="_blank">&#x1F4C1;</a></div></div><div class="lifecycle-stepper" title="Stem Creation -> DAW Creation -> Asset Gathering -> Ready -> Released">'+stepHtml+'</div><div class="meta-grid"><div class="meta-row"><span class="label">Album:</span>'+alh+'</div><div class="meta-row"><span class="label">Profile:</span><span>'+escHtml(t.profile||'N/A')+'</span></div><div class="meta-row"><span class="label">ISRC:</span>'+ih+'</div>'+mr+elh+'<div class="meta-row"><span class="label">Published:</span>'+pbh+'</div><div class="meta-row"><span class="label">Verified:</span>'+vbh+'</div><div class="meta-row"><span class="label">Spotify:</span>'+sbh+'</div><div class="meta-row"><span class="label">Revenue Stream:</span>'+rvh+'</div><div class="meta-row"><span class="label">Earnings:</span>'+ebh+'</div><div class="meta-row"><span class="label">Platforms:</span>'+ffh+'</div></div>'+gr+'</div></div>';
+            h += '<div class="card-main-content"><img class="thumb-img" src="'+escHtml(t.thumbUrl||'data:image/png;base64,')+'" alt="Cover" /><div class="card-details"><div class="card-details-top-row"><h3>'+escHtml(t.title)+' <span class="status-pill '+spc+'">'+escHtml(t.status)+'</span></h3><div class="card-actions-wrapper"><button class="detail-btn" onclick="showPanel(\'detail\',{cardId:\''+t.id+'\'})">Detail</button><span id=\"conf-badge-'+t.id+'\" style=\"display:none;font-size:0.7rem;color:#1DB954;font-weight:700;margin-left:4px;\"></span>'+(t.spotifyUri&&_spotifyAccessToken?'<button class="action-icon-btn" onclick="playerPlayUri(\''+t.spotifyUri+'\')" title="Play">&#x25B6;</button>':'')+'<button class="action-icon-btn" onclick="dispatchVerificationMarkViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')" title="'+escHtml(vtt)+'">&#x1F44D;'+vcb+'</button><button class="action-icon-btn" onclick="toggleUploadPicker(\''+t.id+'\')" title="Upload a missing item">&#x1F4E4;</button><button class="action-icon-btn" onclick="togglePublicationForm(\''+t.id+'\')" title="Update publication">&#x1F310;</button><button class="action-icon-btn" onclick="toggleErrorSubmissionForm(\''+t.id+'\')">&#x26A0;&#xFE0F;</button><a href="'+escHtml(t.nasUrl||'')+'" class="action-icon-btn" target="_blank">&#x1F4C1;</a></div></div><div class="lifecycle-stepper" title="Stem Creation -> DAW Creation -> Asset Gathering -> Ready -> Released">'+stepHtml+'</div><div class="meta-grid"><div class="meta-row"><span class="label">Album:</span>'+alh+'</div><div class="meta-row"><span class="label">Profile:</span><span>'+escHtml(t.profile||'N/A')+'</span></div><div class="meta-row"><span class="label">ISRC:</span>'+ih+'</div>'+mr+elh+'<div class="meta-row"><span class="label">Published:</span>'+pbh+'</div><div class="meta-row"><span class="label">Verified:</span>'+vbh+'</div><div class="meta-row"><span class="label">Spotify:</span>'+sbh+'</div><div class="meta-row"><span class="label">Revenue Stream:</span>'+rvh+'</div><div class="meta-row"><span class="label">Earnings:</span>'+ebh+'</div><div class="meta-row"><span class="label">Platforms:</span>'+ffh+'<div class="meta-row"><span class="label">Confidence:</span><span style="font-size:0.85rem;color:#1DB954;font-weight:600;">'+(_confidenceScores[t.id]?'\uD83D\uDC4D '+_confidenceScores[t.id]+' thumbs up':'Not yet rated')+'</span></div></div>'+gr+'</div></div>';
             h += '<div class="error-subform-panel" id="subform-'+t.id+'"><div class="subform-grid"><div class="subform-row"><label>Time:</label><input type="text" id="input-stamp-'+t.id+'" class="subform-input" placeholder="1:24 (MM:SS)" /></div><div class="subform-row"><label>Issue:</label><input type="text" id="input-issue-'+t.id+'" class="subform-input" /></div><div class="subform-row"><label>Fix:</label><input type="text" id="input-fix-'+t.id+'" class="subform-input" /></div><div class="subform-actions"><button class="subform-btn btn-add" onclick="stageLocalErrorEntry(\''+t.id+'\','+JSON.stringify(t.title)+')">Stage Note</button><button class="subform-btn btn-email" onclick="dispatchStagedErrorsViaDrive(\''+t.id+'\','+JSON.stringify(t.title)+')">Send via Drive</button></div><div class="staged-errors-ledger" id="ledger-'+t.id+'"></div></div></div>';
             h += '<div class="publication-subform-panel" id="pubform-'+t.id+'"><div class="subform-grid"><div class="subform-row"><label>Platform:</label><input type="text" id="pub-platform-'+t.id+'" class="subform-input" placeholder="Spotify, YouTube, etc." value="'+escHtml(pp)+'" /></div><div class="subform-row"><label>Date:</label><input type="text" id="pub-date-'+t.id+'" class="subform-input" placeholder="YYYY-MM-DD" value="'+escHtml(pd)+'" /></div><div class="subform-row"><label>Link:</label><input type="text" id="pub-link-'+t.id+'" class="subform-input" placeholder="https://..." value="'+escHtml(pl)+'" /></div><div class="subform-actions"><button class="subform-btn btn-email" onclick="dispatchPublicationUpdateViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')">Send Update</button></div></div></div></div>';
             return h;
@@ -841,10 +841,67 @@
         function toggleAdminPanel() { document.getElementById('adminModalBackdrop').classList.add('active'); }
         function closeAdminPanel()  { document.getElementById('adminModalBackdrop').classList.remove('active'); }
         function triggerAdminImport(importType) {
-            var url = DRIVE_UPLOAD_FORM_URL + '?type=AdminImport';
-            if (importType) url += '&importType=' + encodeURIComponent(importType);
-            window.open(url, '_blank');
-            closeAdminPanel();
+            var input = document.createElement('input');
+            input.type = 'file'; input.accept = '.csv,.zip,.png,.jpg,.jpeg,.mp4,.mp3,.txt'; input.multiple = true;
+            input.onchange = function() {
+                if (!input.files || !input.files.length) return;
+                closeAdminPanel();
+                uploadFilesToGitHub(Array.from(input.files), importType);
+            };
+            input.click();
+        }
+
+        async function uploadFilesToGitHub(files, hintType) {
+            var total = files.length, done = 0, failed = [];
+            for (var i = 0; i < files.length; i++) {
+                var r = await uploadOneFileToGitHub(files[i], hintType);
+                if (r) done++; else failed.push(files[i].name);
+            }
+            if (failed.length) { alert(done + '/' + total + ' uploaded. Failed: ' + failed.join(', ')); }
+            else { alert(total + ' file' + (total!==1?'s':'') + ' uploaded. Will be picked up on the next run.'); }
+        }
+
+        async function uploadOneFileToGitHub(file, hintType) {
+            if (file.size > 48*1024*1024) { alert(file.name + ' is too large (max 48MB).'); return false; }
+            var name = file.name.toLowerCase(), folder, ghName;
+            if (hintType || name.endsWith('.csv') || name.endsWith('.zip')) {
+                var importType = hintType || null, snapshotDate = '';
+                if (!importType) {
+                    if (/^excruciating_details/.test(name)) importType = 'distrokid';
+                    else if (/-timelines?\.csv$/.test(name)) importType = 'song_timeline';
+                    else if (/-songs-1day/.test(name)) importType = 'artist_songs_1day';
+                }
+                if (!importType) { importType = prompt('Import type for ' + file.name + ':\ndistrokid / spotify_audience / artist_songs_1day / song_timeline'); if (!importType) return false; }
+                if (importType === 'artist_songs_1day') {
+                    var dm = file.name.match(/(\d{1,2})-(\d{1,2})\s*(?:\.\w+)?$/);
+                    if (dm) {
+                        var d2 = new Date(new Date().getFullYear(), parseInt(dm[2],10)-1, parseInt(dm[1],10));
+                        if (d2 > new Date()) d2 = new Date(d2.getFullYear()-1, d2.getMonth(), d2.getDate());
+                        d2.setDate(d2.getDate()+1);
+                        snapshotDate = d2.getFullYear() + '-' + String(d2.getMonth()+1).padStart(2,'0') + '-' + String(d2.getDate()).padStart(2,'0');
+                    } else { snapshotDate = prompt('Snapshot date for ' + file.name + ' (YYYY-MM-DD):'); if (!snapshotDate) return false; }
+                }
+                folder = 'imports'; ghName = importType + '__' + (snapshotDate||'nodate') + '__' + file.name;
+            } else {
+                var extMap = { png:'Cover', jpg:'Cover', jpeg:'Cover', mp4:'Canvas', mp3:'Clip', txt:'Lyrics' };
+                var ext2 = (file.name.split('.').pop()||'').toLowerCase();
+                var assetType = extMap[ext2] || 'Cover';
+                var sname = prompt('Song name for ' + file.name + ':'); if (!sname) return false;
+                folder = 'uploads'; ghName = sname.replace(/ /g,'_') + '__' + assetType + '__' + file.name;
+            }
+            return new Promise(function(resolve) {
+                var reader = new FileReader();
+                reader.onload = async function() {
+                    var b64 = reader.result.split(',')[1];
+                    try {
+                        var resp = await fetch(WORKER_URL + '/github/push', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({path: folder+'/'+ghName, content: b64, message: 'Upload: '+ghName}) });
+                        var res = await resp.json();
+                        resolve(res && res.success !== false);
+                    } catch(e) { resolve(false); }
+                };
+                reader.onerror = function() { resolve(false); };
+                reader.readAsDataURL(file);
+            });
         }
         function openUploadRowAction(id, songName, assetType, acceptAttr, expectedExt) {
             if (assetType === 'Lyrics') {
@@ -879,7 +936,26 @@
             window.location.href = 'mailto:phelzier1@gmail.com?subject=' + encodeURIComponent('[MLP] [VERIFY] ' + name) + '&body=' + encodeURIComponent('Verification mark for "' + name + '":\n\nTimestamp: ' + ts + '\n\nPlease record this as a verification for this track.');
         }
         function triggerAssetUpload(id, name, assetType, acceptAttr, expectedExt) {
-            window.open(DRIVE_UPLOAD_FORM_URL + '?song=' + encodeURIComponent(name) + '&type=' + encodeURIComponent(assetType), '_blank');
+            var input = document.createElement('input');
+            input.type = 'file'; input.accept = acceptAttr || '*';
+            input.onchange = async function() {
+                if (!input.files || !input.files.length) return;
+                var file = input.files[0];
+                var ext = (file.name.split('.').pop()||'').toLowerCase();
+                if (expectedExt && ext !== expectedExt) { alert('Expected a .' + expectedExt + ' file.'); return; }
+                var ghName = name.replace(/ /g,'_') + '__' + assetType + '__' + file.name;
+                var reader = new FileReader();
+                reader.onload = async function() {
+                    try {
+                        var resp = await fetch(WORKER_URL + '/github/push', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({path: 'uploads/'+ghName, content: reader.result.split(',')[1], message: 'Upload: '+ghName}) });
+                        var res = await resp.json();
+                        if (res && res.success !== false) { alert('Uploaded!'); closeUploadModal(); }
+                        else { alert('Upload failed. Please try again.'); }
+                    } catch(e) { alert('Error: ' + e); }
+                };
+                reader.readAsDataURL(file);
+            };
+            input.click();
         }
         var stagedErrorEntries = {}; // id -> [{time, error, fix}]
         var TIME_MMSS_PATTERN = /^\d{1,2}:\d{2}$/;
@@ -910,7 +986,7 @@
             document.getElementById('input-fix-' + id).value = '';
         }
 
-        function dispatchStagedErrorsViaDrive(id, name) {
+        async function dispatchStagedErrorsViaDrive(id, name) {
             var entries = stagedErrorEntries[id] || [];
             if (entries.length === 0) {
                 var t = document.getElementById('input-stamp-' + id).value.trim();
@@ -918,13 +994,22 @@
                 if (t && issue) { stageLocalErrorEntry(id, name); entries = stagedErrorEntries[id] || []; }
                 if (entries.length === 0) { alert('Add at least one timestamped entry first.'); return; }
             }
-            var json = JSON.stringify(entries);
-            var b64 = btoa(unescape(encodeURIComponent(json)));
-            window.open(DRIVE_UPLOAD_FORM_URL + '?song=' + encodeURIComponent(name) + '&type=ErrorReport&entries=' + encodeURIComponent(b64), '_blank');
-            stagedErrorEntries[id] = [];
-            document.getElementById('ledger-' + id).innerHTML = '';
-            document.getElementById('ledger-' + id).style.display = 'none';
-            toggleErrorSubmissionForm(id);
+            var reportId = Date.now() + '-' + Math.random().toString(36).slice(2,7);
+            var payload = { songName: name, entries: entries, submittedBy: _spotifyUserEmail || 'unknown', submittedAt: new Date().toISOString() };
+            try {
+                var resp = await fetch(WORKER_URL + '/github/push', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: 'error-reports/' + reportId + '.json', content: toBase64(JSON.stringify(payload, null, 2)), message: 'Error report: ' + name })
+                });
+                var result = await resp.json();
+                if (result && result.success !== false) {
+                    stagedErrorEntries[id] = [];
+                    var ledger = document.getElementById('ledger-' + id);
+                    if (ledger) { ledger.innerHTML = ''; ledger.style.display = 'none'; }
+                    toggleErrorSubmissionForm(id);
+                    alert('Sent!');
+                } else { alert('Failed to send error report. Please try again.'); }
+            } catch(e) { alert('Error: ' + e); }
         }
 
         // ── INIT ──
@@ -993,6 +1078,183 @@
         var _spView = 'playlists';
         var _spPlaylists = null;
         var _spPlaylistTracks = {};
+        var WORKER_URL = 'https://spotify-token-refresh.cloudfare-fb3.workers.dev';
+
+        // ── GITHUB HELPERS ──────────────────────────────────────────────────
+        async function ghPush(path, base64Content, message) {
+            var r = await fetch(WORKER_URL + '/github/push', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({path:path,content:base64Content,message:message||'Upload: '+path}) });
+            return r.json();
+        }
+        async function ghDelete(path, sha, message) {
+            var r = await fetch(WORKER_URL + '/github/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({path:path,sha:sha,message:message||'Remove: '+path}) });
+            return r.json();
+        }
+        async function ghList(folderPath) {
+            var r = await fetch(WORKER_URL + '/github/list?path=' + encodeURIComponent(folderPath));
+            if (!r.ok) return [];
+            return r.json();
+        }
+        async function ghGetFile(filePath) {
+            var r = await fetch(WORKER_URL + '/github/file?path=' + encodeURIComponent(filePath));
+            if (!r.ok) return null;
+            return r.json();
+        }
+        function toBase64(str) { return btoa(unescape(encodeURIComponent(str))); }
+        function fromBase64(b64) { return decodeURIComponent(escape(atob(b64.replace(/\n/g,'')))); }
+
+        // ── PENDING ERRORS ────────────────────────────────────────────────────
+        var _pendingErrors = [];
+        var _pendingErrorsSha = null;
+        var PENDING_ERRORS_PATH = 'pending-errors.json';
+
+        async function loadPendingErrors() {
+            try {
+                var file = await ghGetFile(PENDING_ERRORS_PATH);
+                if (file && file.content) { _pendingErrors = JSON.parse(fromBase64(file.content)); _pendingErrorsSha = file.sha; }
+                else { _pendingErrors = []; _pendingErrorsSha = null; }
+            } catch(e) { _pendingErrors = []; }
+            updatePendingErrorsBadge();
+        }
+        async function savePendingErrors() {
+            var result = await ghPush(PENDING_ERRORS_PATH, toBase64(JSON.stringify(_pendingErrors,null,2)), 'Update pending errors');
+            if (result && result.sha) _pendingErrorsSha = result.sha;
+            updatePendingErrorsBadge();
+        }
+        function updatePendingErrorsBadge() {
+            var badge = document.getElementById('pendingErrorsBadge');
+            var count = _pendingErrors.filter(function(e){return e.status==='pending';}).length;
+            if (badge) { badge.textContent = count>0?count:''; badge.style.display = count>0?'inline-flex':'none'; }
+        }
+
+        async function quickFlagError() {
+            if (!_spotifyCurrentUri) return;
+            var libTrack = null;
+            MLP.tracks.forEach(function(t){ if(t.spotifyUri===_spotifyCurrentUri) libTrack=t; });
+            if (!libTrack) { alert('This track is not in the library.'); return; }
+            var ts = msToMmss(_spotifyCurrentMs);
+            if (_spotifyIsPlaying) {
+                if (_spotifyMode==='sdk'&&_spotifyPlayer) _spotifyPlayer.pause();
+                else spotifyApiCall('PUT','/me/player/pause');
+                _spotifyIsPlaying=false;
+                document.getElementById('playerPlayPauseBtn').textContent='▶';
+            }
+            _pendingErrors.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,7), trackTitle:libTrack.title, trackId:libTrack.id, isrc:libTrack.isrc, spotifyUri:_spotifyCurrentUri, timestamp:ts, flaggedBy:_spotifyUserEmail, flaggedAt:new Date().toISOString(), status:'pending', errorType:null, errorDesc:null, fix:null });
+            await savePendingErrors();
+            var dock=document.getElementById('playerDock'); var flash=document.createElement('div');
+            flash.style.cssText='position:absolute;top:-32px;left:50%;transform:translateX(-50%);background:#1DB954;color:#fff;padding:4px 12px;border-radius:6px;font-size:0.78rem;font-weight:700;white-space:nowrap;';
+            flash.textContent='Flagged at '+ts;
+            if(dock){dock.style.position='relative';dock.appendChild(flash);setTimeout(function(){flash.remove();},2000);}
+        }
+
+        async function completePendingError(errorId) {
+            var entry = _pendingErrors.find(function(e){return e.id===errorId;});
+            if (!entry) return;
+            var parts = entry.timestamp.split(':');
+            var ms = (parseInt(parts[0],10)*60+parseInt(parts[1],10))*1000;
+            if (_spotifyMode==='sdk'&&_spotifyPlayer) _spotifyPlayer.seek(ms);
+            else { if(entry.spotifyUri&&entry.spotifyUri!==_spotifyCurrentUri){playerPlayUri(entry.spotifyUri);setTimeout(function(){spotifyApiCall('PUT','/me/player/seek?position_ms='+ms);},1500);} else spotifyApiCall('PUT','/me/player/seek?position_ms='+ms); }
+            openCompleteErrorModal(entry);
+        }
+
+        function openCompleteErrorModal(entry) {
+            var ex = document.getElementById('_completeErrorModal'); if(ex) ex.remove();
+            var modal = document.createElement('div');
+            modal.id = '_completeErrorModal';
+            modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;';
+            var box = document.createElement('div');
+            box.style.cssText = 'background:#fff;border-radius:12px;padding:20px;width:100%;max-width:400px;color:#1a202c;';
+            box.innerHTML = '<h3 style="margin:0 0 4px;font-size:1rem;">Complete Error Report</h3>' +
+                '<div style="font-size:0.78rem;color:#718096;margin-bottom:14px;">' + escHtml(entry.trackTitle) + ' &bull; ' + escHtml(entry.timestamp) + '</div>' +
+                '<label style="display:block;font-size:0.8rem;font-weight:600;color:#4a5568;margin-bottom:4px;">Issue type</label>' +
+                '<select id="_ceType" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:10px;">' +
+                '<option value="">-- choose --</option><option value="vocal">Vocal issue</option><option value="lyrics">Lyrics issue</option><option value="wrongfile">Wrong audio file</option><option value="glitch">Audio glitch</option></select>' +
+                '<div id="_ceFields"></div>' +
+                '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">' +
+                '<button id="_ceCancelBtn" style="border:none;border-radius:6px;padding:8px 16px;font-size:0.82rem;font-weight:700;cursor:pointer;background:#edf2f7;color:#4a5568;">Cancel</button>' +
+                '<button id="_ceSubmitBtn" style="border:none;border-radius:6px;padding:8px 16px;font-size:0.82rem;font-weight:700;cursor:pointer;background:#4c51bf;color:#fff;">Submit</button>' +
+                '</div>';
+            modal.appendChild(box);
+            document.body.appendChild(modal);
+            box.querySelector('#_ceType').addEventListener('change', onCompleteErrorTypeChange);
+            box.querySelector('#_ceCancelBtn').addEventListener('click', function() { modal.remove(); });
+            box.querySelector('#_ceSubmitBtn').addEventListener('click', function() { submitCompleteError(entry.id); });
+        }
+        function onCompleteErrorTypeChange() {
+            var type=document.getElementById('_ceType').value, fields=document.getElementById('_ceFields'); if(!fields) return;
+            var h='';
+            if(type==='vocal') h='<label style="display:block;font-size:0.8rem;font-weight:600;color:#4a5568;margin-bottom:4px;">Spoken word heard</label><input id="_ceF1" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:8px;"><label style="display:block;font-size:0.8rem;font-weight:600;color:#4a5568;margin-bottom:4px;">What it should be</label><input id="_ceF2" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:8px;font-size:0.85rem;">';
+            else if(type==='lyrics') h='<label style="display:block;font-size:0.8rem;font-weight:600;color:#4a5568;margin-bottom:4px;">Text displayed</label><input id="_ceF1" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:8px;font-size:0.85rem;margin-bottom:8px;"><label style="display:block;font-size:0.8rem;font-weight:600;color:#4a5568;margin-bottom:4px;">Correct lyric</label><input id="_ceF2" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:8px;font-size:0.85rem;">';
+            else if(type==='wrongfile'||type==='glitch') h='<label style="display:block;font-size:0.8rem;font-weight:600;color:#4a5568;margin-bottom:4px;">Description</label><textarea id="_ceF1" style="width:100%;border:1px solid #e2e8f0;border-radius:6px;padding:8px;font-size:0.85rem;min-height:60px;resize:vertical;"></textarea>';
+            fields.innerHTML=h;
+        }
+        async function submitCompleteError(errorId) {
+            var type=(document.getElementById('_ceType')||{}).value; if(!type){alert('Choose an issue type.');return;}
+            var f1=(document.getElementById('_ceF1')||{}).value||'', f2=(document.getElementById('_ceF2')||{}).value||'';
+            var errText='',fixText='';
+            if(type==='vocal'){errText='Vocal: heard "'+f1+'"';fixText='Should be: "'+f2+'"';}
+            else if(type==='lyrics'){errText='Lyrics displayed: "'+f1+'"';fixText='Correct: "'+f2+'"';}
+            else if(type==='wrongfile'){errText='Wrong file: '+f1;}
+            else if(type==='glitch'){errText='Glitch: '+f1;}
+            var entry=_pendingErrors.find(function(e){return e.id===errorId;}); if(!entry) return;
+            var report={songName:entry.trackTitle,entries:[{time:entry.timestamp,error:errText,fix:fixText}],submittedBy:_spotifyUserEmail,submittedAt:new Date().toISOString(),flaggedBy:entry.flaggedBy};
+            var result=await ghPush('error-reports/'+entry.id+'.json',toBase64(JSON.stringify(report,null,2)),'Error report: '+entry.trackTitle);
+            if(result&&result.success!==false){
+                _pendingErrors=_pendingErrors.filter(function(e){return e.id!==errorId;});
+                await savePendingErrors();
+                document.getElementById('_completeErrorModal').remove();
+                updatePendingErrorsBadge();
+            } else { alert('Failed to submit. Please try again.'); }
+        }
+
+        // ── THUMBS UP ─────────────────────────────────────────────────────────
+        async function thumbsUpCurrentTrack() {
+            if(!_spotifyCurrentUri) return;
+            var libTrack=null; MLP.tracks.forEach(function(t){if(t.spotifyUri===_spotifyCurrentUri)libTrack=t;});
+            if(!libTrack) return;
+            var path='analytics/'+libTrack.title.replace(/[^a-zA-Z0-9]/g,'_')+'-confidence.json';
+            var file=await ghGetFile(path); var entries=[]; var sha=null;
+            if(file&&file.content){try{entries=JSON.parse(fromBase64(file.content));}catch(e){} sha=file.sha;}
+            entries.push({at:new Date().toISOString(),by:_spotifyUserEmail,pos:msToMmss(_spotifyCurrentMs)});
+            _confidenceScores[libTrack.id]=(entries.length);
+            updateConfidenceBadges();
+            await ghPush(path,toBase64(JSON.stringify(entries,null,2)),'Thumbs up: '+libTrack.title);
+            var btn=document.getElementById('playerThumbsBtn');
+            if(btn){var orig=btn.innerHTML;btn.innerHTML='✓';btn.style.color='#1DB954';setTimeout(function(){btn.innerHTML=orig;btn.style.color='';},1500);}
+        }
+
+        // ── CONFIDENCE SCORES ─────────────────────────────────────────────────
+        var _confidenceScores = {};
+        async function loadConfidenceScores() {
+            try {
+                var files=await ghList('analytics');
+                if(!Array.isArray(files)) return;
+                for(var i=0;i<files.length;i++){
+                    var f=files[i]; if(!f.name.endsWith('-confidence.json')) continue;
+                    var file=await ghGetFile('analytics/'+f.name); if(!file||!file.content) continue;
+                    try{
+                        var entries=JSON.parse(fromBase64(file.content));
+                        var stem=f.name.replace(/-confidence\.json$/,'');
+                        MLP.tracks.forEach(function(t){if(t.title.replace(/[^a-zA-Z0-9]/g,'_')===stem) _confidenceScores[t.id]=entries.length;});
+                    }catch(e){}
+                }
+                updateConfidenceBadges();
+            } catch(e){}
+        }
+        function updateConfidenceBadges() {
+            Object.keys(_confidenceScores).forEach(function(id){
+                var count=_confidenceScores[id]; if(!count) return;
+                var badge=document.getElementById('conf-badge-'+id);
+                if(badge){badge.textContent='������ '+count;badge.style.display='inline';}
+            });
+        }
+
+        function showSpotifyPendingErrors() {
+            showPanel('spotify');
+            _spView='pending';
+            document.querySelectorAll('.spotify-tab-btn').forEach(function(b){b.classList.remove('active');});
+            var btn=document.getElementById('sp-btn-pending'); if(btn) btn.classList.add('active');
+            var el=document.getElementById('spotifyPanelContent'); if(el) renderPendingErrorsList(el);
+        }
 
         function buildValidateErrorsSection(cardId) {
             var track = _trackMap[cardId];
@@ -1209,6 +1471,8 @@
             // Show Spotify tab
             var spTab = document.getElementById('tab-spotify');
             if (spTab) spTab.style.display = '';
+            loadPendingErrors();
+            loadConfidenceScores();
         }
 
         function updatePlayerUI(name, artist) {
@@ -1315,10 +1579,12 @@
             }
 
             var entries = [{ time: ts, error: errorText, fix: fixText }];
-            google.script.run
-                .withSuccessHandler(function() { closeReportModal(); })
-                .withFailureHandler(function() { alert('Failed to submit report.'); })
-                .handleErrorReport(track, entries);
+            var reportId = Date.now() + '-' + Math.random().toString(36).slice(2,7);
+            var payload = { songName: track, entries: entries, submittedBy: _spotifyUserEmail || 'unknown', submittedAt: new Date().toISOString() };
+            fetch(WORKER_URL + '/github/push', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({path:'error-reports/'+reportId+'.json', content:toBase64(JSON.stringify(payload,null,2)), message:'Error report: '+track}) })
+                .then(function(r){return r.json();})
+                .then(function(result){ if(result&&result.success!==false){closeReportModal();}else{alert('Failed to submit report. Please try again.');} })
+                .catch(function(){alert('Failed to submit report.');});
         }
 
         // On page load: check for OAuth callback code, or restore existing token
