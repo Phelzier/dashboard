@@ -33,6 +33,9 @@
                 });
         })();
 
+        // Populates the sort dropdown with dynamic options (per-company earnings columns) read from
+        // MLP.companies, and rebuilds the profile/album context selects from MLP data.
+        // Called once on init after data.json loads. Re-calling it is safe (clears and rebuilds).
         function populateFilterDropdowns() {
             var ps = document.getElementById('profileSelect');
             while (ps.options.length > 2) ps.remove(2);
@@ -45,12 +48,16 @@
             (MLP.companies || []).forEach(function(c) { var k = c.replace(/[^a-zA-Z0-9]/g,'').toLowerCase(); var o = document.createElement('option'); o.value = 'earnings-' + k; o.text = 'Sort: ' + c; ss.appendChild(o); });
         }
 
+        // Renders the four top-of-page summary metric tiles (Total, Ready, Missing, Errors)
+        // from MLP.summary populated when data.json is fetched.
         function renderSummaryCards() {
             var s = MLP.summary || {};
             var el = function(id, val) { var e = document.getElementById(id); if (e) { var n = e.querySelector('.summary-num'); if (n) n.textContent = val; } };
             el('btn-all', s.total || 0); el('btn-ready', s.ready || 0); el('btn-missing', s.missing || 0); el('btn-errors', s.errors || 0);
         }
 
+        // Renders the Artist panel from MLP.artists: one hero card per artist with image, track count,
+        // and album strip. This is the data.json path; the static HTML path is baked into index.html by PS1.
         function renderArtistPanel() {
             var container = document.getElementById('panel-artist');
             if (!container || !MLP.artists) return;
@@ -73,6 +80,11 @@
             });
         }
 
+        // Builds the full HTML string for a single track card from a data.json track object.
+        // Cards are DOM elements with data-* attributes carrying all filterable/sortable values so
+        // evaluateControlMatrix() can operate on the DOM without re-reading MLP.tracks.
+        // Two card paths exist: this function (data.json/JS path) and the PS1 StringBuilder path
+        // (Step 10.4, baked into index.html). Both must produce identical attribute sets.
         function buildCardHtml(t) {
             var spc = (t.status || '').toLowerCase().replace(/ /g, '-');
             var stepHtml = '';
@@ -130,7 +142,7 @@
             var ea = t.earningsByCompany ? Object.keys(t.earningsByCompany).map(function(k){ return ' data-earnings-'+k.replace(/[^a-zA-Z0-9]/g,'').toLowerCase()+'="'+(t.earningsByCompany[k]||0)+'"'; }).join('') : '';
             var h = '<div class="card" id="'+t.id+'" data-title="'+escHtml(t.title)+'" data-status="'+escHtml(t.status)+'" data-errors="'+escHtml(t.errors)+'" data-missing="'+escHtml(t.missing)+'" data-existing="'+escHtml(t.existing)+'" data-profile="'+escHtml(t.profile||'')+'" data-is-album="'+(t.isAlbum?'TRUE':'FALSE')+'" data-is-single="'+(t.spotifyIsSingle?'TRUE':'FALSE')+'" data-single-name="'+escHtml(t.spotifySingleName||'')+'" data-album-group="'+escHtml(t.albumGroup||'')+'" data-explicit="'+(t.explicit?'TRUE':'FALSE')+'" data-published="'+(t.published?'TRUE':'FALSE')+'" data-earnings-total="'+(t.earningsTotal||0)+'" data-isrc="'+escHtml(t.isrc||'')+'" data-spotify-artist="'+escHtml(t.spotifyArtist||'')+'" data-spotify-url="'+escHtml(t.spotifyUrl||'')+'" data-spotify-uri="'+escHtml(t.spotifyUri||'')+'" data-artist-filter="'+escHtml(t.spotifyArtist||'')+'" data-release-date="'+escHtml(t.spotifyReleaseDate||'')+'"'+ea+'>';
             h += '<div class="card-select-wrapper"><input type="checkbox" class="card-select-checkbox" id="select-'+t.id+'" data-song-name="'+escHtml(t.title)+'" onchange="onCardSelectionChanged(\''+t.id+'\')" /></div>';
-            h += '<div class="card-main-content"><img class="thumb-img" src="'+escHtml(t.thumbUrl||'data:image/png;base64,')+'" alt="Cover" /><div class="card-details"><div class="card-details-top-row"><h3>'+escHtml(t.title)+' <span class="status-pill '+spc+'">'+escHtml(t.status)+'</span></h3><div class="card-actions-wrapper"><button class="detail-btn" onclick="showPanel(\'detail\',{cardId:\''+t.id+'\'})">Detail</button><span id=\"conf-badge-'+t.id+'\" style=\"display:none;font-size:0.7rem;color:#1DB954;font-weight:700;margin-left:4px;\"></span>'+(t.spotifyUri&&_spotifyAccessToken?'<button class="action-icon-btn" onclick="playerPlayUriInContext(\''+t.spotifyUri+'\')" title="Play in order">&#x25B6;</button>':'')+'<button class="action-icon-btn" onclick="dispatchVerificationMarkViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')" title="'+escHtml(vtt)+'">&#x1F44D;'+vcb+'</button><button class="action-icon-btn" onclick="toggleUploadPicker(\''+t.id+'\')" title="Upload a missing item">&#x1F4E4;</button><button class="action-icon-btn" onclick="togglePublicationForm(\''+t.id+'\')" title="Update publication">&#x1F310;</button><button class="action-icon-btn" onclick="toggleErrorSubmissionForm(\''+t.id+'\')">&#x26A0;&#xFE0F;</button><button class="action-icon-btn" onclick="openTrackDetailPopup(\\\''+t.id+'\\\')" title="More detail">&#x1F50D;</button><a href="'+escHtml(t.nasUrl||'')+'" class="action-icon-btn" target="_blank">&#x1F4C1;</a></div></div><div class="lifecycle-stepper" title="Stem Creation -> DAW Creation -> Asset Gathering -> Ready -> Released">'+stepHtml+'</div><div class="meta-grid"><div class="meta-row"><span class="label">Album:</span>'+alh+'</div>'+singleRowHtml+'<div class="meta-row"><span class="label">Profile:</span><span>'+escHtml(t.profile||'N/A')+'</span></div><div class="meta-row"><span class="label">ISRC:</span>'+ih+'</div>'+mr+elh+'<div class="meta-row"><span class="label">Published:</span>'+pbh+'</div><div class="meta-row"><span class="label">Verified:</span>'+vbh+'</div><div class="meta-row"><span class="label">Spotify:</span>'+sbh+'</div><div class="meta-row"><span class="label">Revenue Stream:</span>'+rvh+'</div><div class="meta-row"><span class="label">Earnings:</span>'+ebh+'</div><div class="meta-row"><span class="label">Platforms:</span>'+ffh+'<div class="meta-row"><span class="label">Confidence:</span><span style="font-size:0.85rem;color:#1DB954;font-weight:600;">'+(_confidenceScores[t.id]?'\uD83D\uDC4D '+_confidenceScores[t.id]+' thumbs up':'Not yet rated')+'</span></div></div>'+gr+'</div></div>';
+            h += '<div class="card-main-content"><img class="thumb-img" src="'+escHtml(t.thumbUrl||'data:image/png;base64,')+'" alt="Cover" /><div class="card-details"><div class="card-details-top-row"><h3>'+escHtml(t.title)+' <span class="status-pill '+spc+'">'+escHtml(t.status)+'</span></h3><div class="card-actions-wrapper"><button class="detail-btn" onclick="showPanel(\'detail\',{cardId:\''+t.id+'\'})">Detail</button><span id=\"conf-badge-'+t.id+'\" style=\"display:none;font-size:0.7rem;color:#1DB954;font-weight:700;margin-left:4px;\"></span>'+(t.spotifyUri?'<button class="action-icon-btn" onclick="playerPlayUriInContext(\''+t.spotifyUri+'\')" title="Play in order">&#x25B6;</button>':'')+'<button class="action-icon-btn" onclick="dispatchVerificationMarkViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')" title="'+escHtml(vtt)+'">&#x1F44D;'+vcb+'</button><button class="action-icon-btn" onclick="toggleUploadPicker(\''+t.id+'\')" title="Upload a missing item">&#x1F4E4;</button><button class="action-icon-btn" onclick="togglePublicationForm(\''+t.id+'\')" title="Update publication">&#x1F310;</button><button class="action-icon-btn" onclick="toggleErrorSubmissionForm(\''+t.id+'\')">&#x26A0;&#xFE0F;</button><button class="action-icon-btn" onclick="openTrackDetailPopup(\\\''+t.id+'\\\')" title="More detail">&#x1F50D;</button><a href="'+escHtml(t.nasUrl||'')+'" class="action-icon-btn" target="_blank">&#x1F4C1;</a></div></div><div class="lifecycle-stepper" title="Stem Creation -> DAW Creation -> Asset Gathering -> Ready -> Released">'+stepHtml+'</div><div class="meta-grid"><div class="meta-row"><span class="label">Album:</span>'+alh+'</div>'+singleRowHtml+'<div class="meta-row"><span class="label">Profile:</span><span>'+escHtml(t.profile||'N/A')+'</span></div><div class="meta-row"><span class="label">ISRC:</span>'+ih+'</div>'+mr+elh+'<div class="meta-row"><span class="label">Published:</span>'+pbh+'</div><div class="meta-row"><span class="label">Verified:</span>'+vbh+'</div><div class="meta-row"><span class="label">Spotify:</span>'+sbh+'</div><div class="meta-row"><span class="label">Revenue Stream:</span>'+rvh+'</div><div class="meta-row"><span class="label">Earnings:</span>'+ebh+'</div><div class="meta-row"><span class="label">Platforms:</span>'+ffh+'<div class="meta-row"><span class="label">Confidence:</span><span style="font-size:0.85rem;color:#1DB954;font-weight:600;">'+(_confidenceScores[t.id]?'\uD83D\uDC4D '+_confidenceScores[t.id]+' thumbs up':'Not yet rated')+'</span></div></div>'+gr+'</div></div>';
             h += '<div class="error-subform-panel" id="subform-'+t.id+'"><div class="subform-grid"><div class="subform-row"><label>Time:</label><input type="text" id="input-stamp-'+t.id+'" class="subform-input" placeholder="1:24 (MM:SS)" /></div><div class="subform-row"><label>Issue:</label><input type="text" id="input-issue-'+t.id+'" class="subform-input" /></div><div class="subform-row"><label>Fix:</label><input type="text" id="input-fix-'+t.id+'" class="subform-input" /></div><div class="subform-actions"><button class="subform-btn btn-add" onclick="stageLocalErrorEntry(\''+t.id+'\','+JSON.stringify(t.title)+')">Stage Note</button><button class="subform-btn btn-email" onclick="dispatchStagedErrorsViaGitHub(\''+t.id+'\','+JSON.stringify(t.title)+')">Send Report</button></div><div class="staged-errors-ledger" id="ledger-'+t.id+'"></div></div></div>';
             h += '<div class="publication-subform-panel" id="pubform-'+t.id+'"><div class="subform-grid"><div class="subform-row"><label>Platform:</label><input type="text" id="pub-platform-'+t.id+'" class="subform-input" placeholder="Spotify, YouTube, etc." value="'+escHtml(pp)+'" /></div><div class="subform-row"><label>Date:</label><input type="text" id="pub-date-'+t.id+'" class="subform-input" placeholder="YYYY-MM-DD" value="'+escHtml(pd)+'" /></div><div class="subform-row"><label>Link:</label><input type="text" id="pub-link-'+t.id+'" class="subform-input" placeholder="https://..." value="'+escHtml(pl)+'" /></div><div class="subform-actions"><button class="subform-btn btn-email" onclick="dispatchPublicationUpdateViaEmail(\''+t.id+'\','+JSON.stringify(t.title)+')">Send Update</button></div></div></div></div>';
             return h;
@@ -142,6 +154,8 @@
         var currentPanel = 'artist';
         var panelHistory = [];
 
+        // Activates a named panel (artist, album, songs, detail, spotify, admin) by toggling the
+        // .active class and calling the appropriate renderer. Pushes to browser history for back-button support.
         function showPanel(name, ctx) {
             // Push current state before switching
             if (name !== currentPanel) {
@@ -150,6 +164,8 @@
             _activatePanel(name, ctx);
         }
 
+        // Internal panel switch: hides all panels, shows the target, calls its renderer.
+        // showPanel() wraps this with history.pushState; _activatePanel() is used for popstate replay.
         function _activatePanel(name, ctx) {
             document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
             document.querySelectorAll('.nav-tab').forEach(function(t) { t.classList.remove('active'); });
@@ -182,6 +198,8 @@
         });
 
         // ── ARTIST PANEL ──
+        // Static-path artist panel init: PS1 bakes the artist cards into index.html at build time.
+        // This function only wires up the click handlers on chips and cards post-render.
         function renderArtistPanel() {
             // Artists rendered server-side; wire chip and card clicks here
             document.querySelectorAll('.artist-album-chip[data-album]').forEach(function(chip) {
@@ -235,6 +253,8 @@
 
         // ── ALBUM GRID (all albums — shown when Albums tab clicked with no context) ──
         var _albumGridCache = null;
+        // Renders the Album panel grid: one card per distinct album derived from MLP.artists[].albums.
+        // Clicking a card calls renderAlbumPanel({ albumName }) to drill into that album's tracks.
         function renderAlbumGrid() {
             var panel = document.getElementById('panel-album');
             var bc = panel.querySelector('.breadcrumb');
@@ -289,6 +309,7 @@
             if (container) { container.innerHTML = html; _wireAlbumGridClicks(); }
         }
 
+        // Attaches click handlers to album grid cards and track rows after they are injected into the DOM.
         function _wireAlbumGridClicks() {
             document.querySelectorAll('.album-list-card[data-album-name]').forEach(function(card) {
                 card.onclick = function() { showPanel('album', { albumName: card.getAttribute('data-album-name') }); };
@@ -296,6 +317,8 @@
         }
 
         // ── ALBUM DETAIL (single album) ──
+        // Renders the detail view for a single album: hero image, Spotify metadata, tracklist.
+        // Each track row is clickable to showPanel("detail", { cardId }) for the full per-track view.
         function renderAlbumPanel(ctx) {
             var albumName = ctx.albumName || '';
             var panel = document.getElementById('panel-album');
@@ -402,6 +425,9 @@
         }
 
         // ── DETAIL PANEL ──
+        // Renders the per-track detail panel for a given cardId. Shows all metadata fields, asset
+        // status grid, Spotify audio features (where available), error history, and the validate-errors
+        // section (pending error entries with Play-from-here and status toggle controls).
         function renderDetailPanel(ctx) {
             var cardId = ctx.cardId;
             var card = document.getElementById(cardId);
@@ -605,6 +631,8 @@
         }
 
         // ── SPARKLINE ──
+        // Builds an inline SVG sparkline from an array of {date, streams} objects (popularity history).
+        // Used on the detail panel to show Spotify stream trend over time.
         function _renderSparkline(history) {
             // history: array of ["yyyy-MM-dd", score] pairs, sorted ascending
             var W = 280, H = 56, pad = 4;
@@ -638,10 +666,12 @@
         }
 
         // ── HELPERS ──
+        // Maps an asset type name to its display emoji for the asset status grid on cards/detail.
         function assetEmoji(a) {
             var m = {cover:'🖼️',clip:'✂️',canvas:'🎥',reel:'🎬',mp3:'🔊',wav:'💿',lyrics:'📄',url:'🔗',stems:'🎚️',daw:'💻',mastered:'🎛️',albumreel:'🎞️'};
             return m[a] || '•';
         }
+        // HTML-encodes a string for safe injection into innerHTML. Always call this on untrusted data.
         function escHtml(s) {
             return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
         }
@@ -651,6 +681,8 @@
         var activeArtistFilter = '';
 
         // ── SELECTION MODE ──
+        // Toggles multi-select mode on the card grid. In selection mode, clicking a card adds/removes
+        // it from selectedTrackIds and shows the batch action bar.
         function toggleSelectionMode() {
             selectionModeActive = !selectionModeActive;
             document.body.classList.toggle('selection-mode', selectionModeActive);
@@ -718,6 +750,7 @@
                 else { alert('Failed to send. Please try again.'); }
             } catch(e) { alert('Error: ' + e); }
         }
+        // Sets the active status filter (ALL, READY, MISSING, ERRORS) and re-evaluates the matrix.
         function applyStatusFilter(s) {
             var cards = document.getElementsByClassName('summary-card');
             for (var i = 0; i < cards.length; i++) cards[i].classList.remove('active-filter');
@@ -726,6 +759,7 @@
             document.getElementById(tid).classList.add('active-filter');
             evaluateControlMatrix();
         }
+        // Resets all filters (status, profile, search, asset matrix tags, album context) and re-renders.
         function clearAllFilters() {
             document.getElementById('searchInput').value = '';
             document.getElementById('profileSelect').value = 'ALL';
@@ -750,6 +784,8 @@
             else { arr.push(assetName.toLowerCase()); el.classList.add(mode === 'Has' ? 'has-active' : 'missing-active'); }
             evaluateControlMatrix();
         }
+        // Toggles between shelf mode (cards grouped under album headers) and flat list mode.
+        // Preference is persisted to localStorage so it survives page reload.
         function toggleShelfMode() {
             shelfModeActive = !shelfModeActive;
             document.getElementById('shelfToggleBtn').innerText = '📁 Album Shelf: ' + (shelfModeActive ? 'ON' : 'OFF');
@@ -759,6 +795,8 @@
         function applySortOrder() { activeSortKey = document.getElementById('sortBySelect').value; evaluateControlMatrix(); }
         function toggleSortDir() { activeSortDir = activeSortDir === 'desc' ? 'asc' : 'desc'; var btn = document.getElementById('sortDirBtn'); if (btn) btn.textContent = activeSortDir === 'asc' ? 'A-Z' : 'Z-A'; evaluateControlMatrix(); }
 
+        // Returns true if a card passes all currently active filters: text search, status filter,
+        // profile, album context, and the has/missing asset matrix tags. Any failing rule hides the card.
         function checkCardAgainstActiveMatrixRules(card, query, targetProfile, albumContextMode) {
             var status    = (card.getAttribute('data-status') || '').toLowerCase().trim();
             var errors    = (card.getAttribute('data-errors') || '').toLowerCase().trim();
@@ -804,6 +842,12 @@
             return matchStatus && matchProfile && matchAlbumCtx && matchHas && matchMissing && matchSearch && matchArtist && matchStage && matchFinancial && matchSingleStatus;
         }
 
+        // Central filter/sort/render engine for the Songs panel. On first call (empty cardsContainer)
+        // it builds the card DOM from MLP.tracks via buildCardHtml(). On every call it re-applies the
+        // active sort order to the card array, then runs checkCardAgainstActiveMatrixRules() on each card
+        // to set display:none/''. In shelf mode (default), visible cards are grouped into album shelves;
+        // in flat mode they are appended directly to cardsContainer. Call this whenever any filter,
+        // sort, or search state changes.
         function evaluateControlMatrix() {
             // Render cards from data if cardsContainer is empty (first load or refresh)
             var cC = document.getElementById('cardsContainer');
@@ -908,6 +952,7 @@
             else pnl.style.display = 'none';
         }
 
+        // Copies the titles of all currently-visible (filtered) tracks to the clipboard as a plain-text list.
         function exportFilteredSongTitles() {
             var cards = document.getElementsByClassName('card');
             var q = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -937,6 +982,8 @@
             'inunreleasedalbum':  'DAW Creation',
             'inreleasedalbum':    'Released Context'
         };
+        // Maps a total earnings value (in USD, converted to GBP via rate) to a display tier label
+        // (None / Low / Mid / High) used to colour-code earnings badges on cards.
         function getFinancialTier(earningsTotal, rate) {
             var gbp = earningsTotal * rate;
             if (gbp >= 100.0) return 'tier-high';
@@ -946,6 +993,9 @@
         window.getFinancialTier = getFinancialTier;
 
         // ── TRACK DETAIL POPUP (Point 9) ──
+        // Opens a floating popup overlay with the full detail panel content for a track.
+        // Separate from showPanel("detail") — this overlays the current panel rather than replacing it,
+        // so the user can inspect a track from an album view without losing their place.
         function openTrackDetailPopup(trackId) {
             if (!MLP || !Array.isArray(MLP.tracks)) return;
             var track = _trackMap[trackId];
@@ -1034,6 +1084,9 @@
         var _stagedUploadFiles = [];
         var _uploadAssetCtx = null; // {id, songName, assetType, acceptAttr, expectedExt}
 
+        // Shows/hides the asset upload picker inline below the track card. The user selects an asset
+        // type (Cover, Lyrics, Canvas, etc.), picks a file, and the staged list builds before upload.
+        // On submit, files go to GitHub uploads/<songname>__<AssetType>__<filename> via the worker.
         function toggleUploadPicker(id) {
             currentUploadModalTrackId = id;
             _stagedUploadFiles = [];
@@ -1245,6 +1298,9 @@
                 } catch(e) { updatePending(fname + '/', '✗ ' + e.message, false); }
             }
         }
+        // Opens a file picker for admin data imports (DistroKid CSV, Spotify audience CSV, etc.).
+        // The selected file is base64-encoded and pushed to GitHub imports/<type>__<date>__<name>.json
+        // via the worker. The PS1 picks it up next run via Import-AdminDataFile.
         function triggerAdminImport(importType) {
             var input = document.createElement('input');
             input.type = 'file'; input.accept = '.csv,.zip,.png,.jpg,.jpeg,.mp4,.mp3,.txt'; input.multiple = true;
@@ -1367,6 +1423,9 @@
                 else { alert('Failed to save publication update. Please try again.'); }
             } catch(e) { alert('Error: ' + e); }
         }
+        // Pushes a verification (thumbs-up) mark for a track to GitHub imports/verify__<date>__<name>.json
+        // via the Cloudflare worker. The PS1 picks this up next run and appends it to the track's
+        // VerificationLog in the manifest and library index. Named "ViaEmail" historically — now GitHub only.
         async function dispatchVerificationMarkViaEmail(id, name) {
             var ts = new Date().toISOString();
             var safeName = name.replace(/ /g,'_');
@@ -1383,6 +1442,9 @@
         var stagedErrorEntries = {}; // id -> [{time, error, fix}]
         var TIME_MMSS_PATTERN = /^\d{1,2}:\d{2}$/;
 
+        // Validates and adds one timestamped error entry (time, issue, fix) to the in-memory
+        // stagedErrorEntries[id] ledger, sorted chronologically. Does not push to GitHub — that happens
+        // in dispatchStagedErrorsViaGitHub() when the user clicks Send Report.
         function stageLocalErrorEntry(id, name) {
             var t = document.getElementById('input-stamp-' + id).value.trim();
             var issue = document.getElementById('input-issue-' + id).value.trim();
@@ -1543,6 +1605,9 @@
         var _pendingErrorsSha = null;
         var PENDING_ERRORS_PATH = 'pending-errors.json';
 
+        // Fetches pending-errors.json from GitHub and populates _pendingErrors. Called on Spotify connect
+        // and after any write. pending-errors.json is a shared list: anyone who quick-flags a track during
+        // playback adds to it; completing an error moves it to error-reports/ and removes it from the list.
         async function loadPendingErrors() {
             try {
                 var file = await ghGetFile(PENDING_ERRORS_PATH);
@@ -1562,6 +1627,9 @@
             if (badge) { badge.textContent = count>0?count:''; badge.style.display = count>0?'inline-flex':'none'; }
         }
 
+        // One-tap flag from the player dock: pauses playback and appends a pending error entry for the
+        // currently playing track at the current playback position. Does not ask for detail — that comes
+        // later via completePendingError() / openCompleteErrorModal(). Writes to pending-errors.json.
         async function quickFlagError() {
             if (!_spotifyCurrentUri) return;
             var libTrack = null;
@@ -1592,6 +1660,9 @@
             openCompleteErrorModal(entry);
         }
 
+        // Opens a dynamically-created modal to collect the full error detail for a pending-errors entry:
+        // issue type, description, fix suggestion. On submit, writes to error-reports/<id>.json on GitHub
+        // (picked up by PS1 next run) and removes the entry from pending-errors.json.
         function openCompleteErrorModal(entry) {
             var ex = document.getElementById('_completeErrorModal'); if(ex) ex.remove();
             var modal = document.createElement('div');
@@ -1643,6 +1714,9 @@
         }
 
         // ── THUMBS UP ─────────────────────────────────────────────────────────
+        // Thumbs-up the currently playing Spotify track. Appends a timestamped entry to
+        // analytics/<title>-confidence.json on GitHub (read-modify-write via ghGetFile + ghPush).
+        // Updates _confidenceScores[id] and refreshes all confidence badges immediately in the UI.
         async function thumbsUpCurrentTrack() {
             if(!_spotifyCurrentUri) return;
             var libTrack=null; MLP.tracks.forEach(function(t){if(t.spotifyUri===_spotifyCurrentUri)libTrack=t;});
@@ -1661,12 +1735,16 @@
         // ── CONFIDENCE SCORES ─────────────────────────────────────────────────
         var _confidenceScores = {};
         // Effective confidence = thumbs-up count minus confirmed error penalty (-1 per error line).
+        // Effective confidence = raw thumbs-up count minus 1 per confirmed error line in errorText.
+        // All error types currently weighted -1. Use this everywhere confidence is displayed or sorted.
         function computeEffectiveConfidence(trackId, track) {
             var thumbs = _confidenceScores[trackId] || 0;
             if (!track || track.errors !== 'Yes' || !track.errorText) return thumbs;
             var errorLines = track.errorText.split('\n').filter(function(l) { return l.trim() && l.indexOf(';') !== -1; });
             return thumbs - errorLines.length; // -1 per confirmed error; all types set to -1 for now
         }
+        // Fetches all -confidence.json files from GitHub analytics/ folder, counts entries in each,
+        // and populates _confidenceScores keyed by track id. Called once on Spotify connect.
         async function loadConfidenceScores() {
             try {
                 var files=await ghList('analytics');
@@ -1771,6 +1849,9 @@
 
         // ── SPOTIFY VIEW RENDERERS ────────────────────────────────────────────
         // Returns ordered list of visible card spotifyUris from the current DOM state
+        // Returns an ordered array of Spotify URIs for all currently-visible (non-hidden) cards,
+        // in their current DOM order (which reflects the active sort). Used by playerPlayUriInContext()
+        // to queue all visible tracks starting from the one the user tapped.
         function getVisibleQueueUris() {
             var cards = document.getElementById('cardsContainer').children;
             var uris = [];
@@ -1798,7 +1879,7 @@
                 }
                 _spotifyCurrentUri = uri;
                 showPlayerDock();
-                startApiPoller();
+                startSpotifyPoll();
             } catch(e) { await playerPlayUri(uri); }
         }
 
@@ -1809,9 +1890,11 @@
             if (_spotifyDeviceId) body.device_id = _spotifyDeviceId;
             await spotifyApiCall('PUT', '/me/player/play', body);
             showPlayerDock();
-            startApiPoller();
+            startSpotifyPoll();
         }
 
+        // Builds a single track row DOM element for the Spotify panel views (Playlists, Liked, Recent, Top).
+        // Clicking the play button queues all contextUris starting from this track's position.
         function renderSpotifyTrackRow(track, contextUris, ctxLabel) {
             // track: Spotify track object; contextUris: array of uris to queue; ctxLabel: string
             var uri = track.uri;
@@ -1924,6 +2007,8 @@
             el.innerHTML = ''; el.appendChild(div);
         }
 
+        // Switches the active Spotify sub-tab (playlists / liked / recent / top / pending)
+        // and triggers loadSpotifyPanel() to fetch and render the new view.
         function switchSpotifyView(view) {
             _spView = view;
             document.querySelectorAll('.spotify-tab-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -1980,8 +2065,8 @@
                 url.searchParams.delete('code');
                 history.replaceState({}, '', url);
                 verifySpotifyUser().then(function(allowed) {
-                    if (allowed) { hideAuthScreen(); spotifyInit(); }
-                    else { _spotifyAccessToken = null; sessionStorage.removeItem('sp_refresh'); showAuthScreen('Access denied. Your Spotify account (' + _spotifyUserEmail + ') is not authorised.'); }
+                    if (allowed) { spotifyInit(); }
+                    else { _spotifyAccessToken = null; sessionStorage.removeItem('sp_refresh'); var _authEl = document.getElementById('spotifyPanelContent'); if (_authEl) _authEl.innerHTML = '<div style="color:#e53e3e;padding:12px;">Access denied. Your Spotify account (' + escHtml(_spotifyUserEmail) + ') is not authorised.</div>'; }
                 });
             }
         }
@@ -2050,6 +2135,9 @@
             });
         };
 
+        // Called when the Spotify Web Playback SDK is unavailable or fails to connect (e.g. on
+        // Android Chrome, or non-Premium accounts). Switches to API polling mode: the SDK player is
+        // abandoned and the active Spotify app on the user's device is controlled via REST instead.
         function spotifyFallbackToApi() {
             _spotifyMode = 'api';
             showPlayerDock();
@@ -2069,6 +2157,8 @@
             }, 2000);
         }
 
+        // Makes the player dock visible and shows the Spotify nav tab (hidden until first auth).
+        // Also triggers loadPendingErrors() and loadConfidenceScores() if not already loaded.
         function showPlayerDock() {
             document.getElementById('playerDock').classList.add('visible');
             document.body.style.paddingBottom = '70px';
@@ -2079,6 +2169,8 @@
             loadConfidenceScores();
         }
 
+        // Updates the player dock track name, artist, play/pause button, and progress bar.
+        // Called by the SDK player_state_changed event and by the API polling timer.
         function updatePlayerUI(name, artist) {
             document.getElementById('playerTrackName').textContent = name || '—';
             document.getElementById('playerTrackArtist').textContent = artist || '—';
